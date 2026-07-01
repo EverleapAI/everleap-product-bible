@@ -1,0 +1,218 @@
+# Fun Facts
+
+## Purpose
+
+Fun Facts exists to surprise, delight, and reinforce self-awareness.
+
+Unlike the other Insight pages, Fun Facts is not intended to explain the user's core developmental patterns.
+
+Instead, it highlights interesting observations that emerge from the user's evidence.
+
+The page should create moments where users smile, become curious, or say:
+
+> "I never realized that."
+
+Fun Facts helps make self-discovery enjoyable.
+
+---
+
+# The Question This Page Answers
+
+Every page in Everleap answers one question.
+
+Fun Facts answers:
+
+> **"What interesting things have we noticed about you?"**
+
+The emphasis is on interesting.
+
+Not important.
+
+Not definitive.
+
+Not life changing.
+
+---
+
+# Philosophy
+
+People enjoy discovering unexpected patterns.
+
+Not every observation needs to change someone's life.
+
+Sometimes noticing a small habit, preference, or tendency creates a memorable moment.
+
+Those moments increase engagement.
+
+More importantly, they remind users that self-discovery can be enjoyable.
+
+Fun Facts should celebrate curiosity.
+
+---
+
+# What Counts as a Fun Fact
+
+A Fun Fact should be:
+
+- true enough to be believable
+- surprising enough to be interesting
+- supported by evidence
+- low stakes
+- conversation-worthy
+
+Examples include noticing:
+
+- recurring preferences
+- unusual combinations of interests
+- consistent habits
+- surprising contradictions
+- changes over time
+- uncommon strengths working together
+
+The page should reveal patterns users are unlikely to notice themselves.
+
+---
+
+# What This Page Should Never Become
+
+Fun Facts is not:
+
+- another strengths page
+- another motivations page
+- another career page
+- another personality assessment
+
+It should never compete with the core Insight pages.
+
+Instead it should complement them.
+
+---
+
+# Relationship To The Other Pages
+
+The other Insight pages answer major developmental questions.
+
+Fun Facts answers smaller questions.
+
+It provides lighter observations that make the product feel more human.
+
+Fun Facts should reinforce curiosity rather than increase confidence.
+
+---
+
+# Scientific Foundation
+
+Fun Facts may use evidence from any science.
+
+Unlike the other pages, it is intentionally cross-disciplinary.
+
+Interesting observations often emerge when unrelated pieces of evidence intersect.
+
+Examples might include:
+
+- Motivations + Skills
+- Strengths + Story
+- Actions + Interests
+- Longitudinal changes
+
+The goal is not scientific precision.
+
+The goal is thoughtful discovery.
+
+---
+
+# AI Responsibilities
+
+The AI generating Fun Facts should:
+
+- search for unusual combinations
+- notice recurring patterns
+- identify interesting changes over time
+- recognize surprising consistencies
+- explain observations simply
+
+It should avoid exaggeration.
+
+It should avoid comedy.
+
+It should avoid making unsupported claims.
+
+---
+
+# Writing Style
+
+Fun Facts should feel:
+
+- conversational
+- light
+- curious
+- intelligent
+- enjoyable
+
+The writing should sound like:
+
+"I noticed something interesting..."
+
+rather than:
+
+"Here's another assessment."
+
+---
+
+# Confidence
+
+Confidence should remain moderate.
+
+Fun Facts are exploratory observations.
+
+The page should openly acknowledge uncertainty whenever appropriate.
+
+Being interesting is more important than sounding certain.
+
+---
+
+# Success
+
+Fun Facts succeeds when users say:
+
+"That's actually true."
+
+"I never thought about that."
+
+"That's interesting."
+
+"I want to pay attention to that."
+
+The page should create delight without becoming entertainment.
+
+---
+
+# Anti-Patterns
+
+Fun Facts should never:
+
+- flatter users
+- invent observations
+- repeat other Insight pages
+- recommend careers
+- assign labels
+- become trivia
+- become jokes
+
+Every observation should still be supported by evidence.
+
+---
+
+# Product Rules
+
+Every Fun Fact should answer:
+
+1. What interesting pattern did we notice?
+2. What evidence supports it?
+3. Why might the user find this interesting?
+
+If an observation is not both evidence-based and genuinely interesting, it should not appear.
+
+Fun Facts exists to make self-discovery memorable.
+
+Sometimes the smallest observations are the ones people remember the longest.
