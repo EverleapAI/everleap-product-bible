@@ -24,6 +24,18 @@ Not assignments.
 
 ---
 
+# Action Suggestion
+
+A candidate action generated alongside guidance — a *suggestion*, not yet a
+committed Action.
+
+Suggestions generate non-blocking, off the page's critical path, so they never
+slow a load.
+
+A suggestion becomes an Action only when the user takes it up.
+
+---
+
 # Agent
 
 An AI system responsible for a specific responsibility.
@@ -58,6 +70,21 @@ Confidence is **not** a measure of truth.
 
 ---
 
+# Cost Source Tag
+
+A label recorded on every AI call marking *what kind of work* spent the tokens.
+
+The tags are:
+
+- `generation` — real user-facing generation.
+- `ai_lab` — the internal AI Lab tool.
+- `prompt_lab_preview` — Prompt Lab live previews.
+
+The spend dashboard rolls these into three buckets — **app**, **ai_lab**,
+**prompt_lab** — so internal tooling spend stays separable from real user spend.
+
+---
+
 # Cross-Science Synthesis
 
 The process of combining multiple independent science memos into one coherent understanding.
@@ -67,6 +94,19 @@ Examples include:
 - Insights Summary
 - Today
 - Recommendations
+
+---
+
+# De-amplification
+
+Ensuring an expensive shared step runs at most once per generation bundle,
+instead of once per dependent that needs it.
+
+Concretely: a science memo is computed once on a real input change; every later
+target in the same bundle that re-enters that science gets an input-hash cache
+hit instead of a repeat AI call.
+
+De-amplification is what keeps broad regeneration cost-safe.
 
 ---
 
@@ -111,6 +151,18 @@ Pages never perform generation.
 
 ---
 
+# Generation Bundle
+
+A set of generation targets run together from one trigger (e.g. a Today refresh,
+or a whole-account rebuild).
+
+Targets in a bundle share dependencies — most notably the sciences — which run
+once for the bundle rather than once per target.
+
+Bundles are where De-amplification and Input-Hash Caching pay off.
+
+---
+
 # Generation Request
 
 A record describing work that needs to happen.
@@ -136,6 +188,21 @@ A possible explanation supported by evidence.
 Hypotheses are never facts.
 
 They remain open to revision.
+
+---
+
+# Input-Hash Caching
+
+Skipping an AI generation when its inputs have not changed.
+
+Each target hashes its real inputs; if the hash matches the last stored one
+(`generation_input_hashes` table), the model call is skipped and the existing
+output is reused — a $0 no-op.
+
+The cache is fail-open: any lookup fault regenerates rather than serving stale
+content.
+
+Some targets opt out by design — Today, for instance, always regenerates fresh.
 
 ---
 
@@ -219,6 +286,18 @@ Patterns are stronger than isolated observations.
 Instructions that define how AI should perform one responsibility.
 
 Prompts should describe reasoning, not merely wording.
+
+---
+
+# Prompt Lab
+
+A passcode-gated internal tool for previewing a prompt change live.
+
+It layers a word-count / tone / note override on top of the *real* generator's
+prompt for one field and returns the result against real data.
+
+Previews are never persisted, and their cost is tagged `prompt_lab_preview` (see
+Cost Source Tag) so it stays separable from user spend.
 
 ---
 

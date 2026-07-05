@@ -179,6 +179,12 @@ Instead:
 4. Science memos are updated.
 5. Product pages read generated content from the database.
 
+Generation is also frugal. Each target hashes its own inputs, so when nothing
+relevant has changed the model call is skipped entirely — an input-hash cache
+hit is a $0 no-op that reuses the stored output (see *De-amplification* and
+*Input-Hash Caching* in the glossary). And where a step can suggest an action,
+those action suggestions generate non-blocking, off the page's critical path.
+
 This architecture provides:
 
 - consistency

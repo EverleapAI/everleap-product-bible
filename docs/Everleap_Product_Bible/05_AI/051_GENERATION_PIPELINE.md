@@ -166,6 +166,10 @@ These generators synthesize multiple sciences into user-facing experiences.
 
 No page should bypass the science layer.
 
+Insights is not a single generator. Each Insights tab has its own generator and its own target—Summary, Motivations, Strengths, Skills, Time Twin, and Fun Facts—and live events drive those per-tab targets directly. Motivations depends only on Ikigai, Strengths only on Enneagram, Skills only on Parachute; Summary, Time Twin, and Fun Facts depend on all three sciences.
+
+An older combined "Insights Summary" one-pass generator (target `page:insights`) still exists in the code, but no live event enqueues it anymore. It survives only inside the unused `REFRESH_INSIGHTS` and `FULL_REBUILD` bundles and should be treated as legacy/orphaned.
+
 ---
 
 # Dependency Graph
@@ -216,6 +220,46 @@ This creates consistency throughout the product.
 
 ---
 
+# Caching and De-Amplification
+
+Broad regeneration must be cost-safe, so every AI-driven target guards its model call behind an input-hash cache.
+
+A small infrastructure table, `generation_input_hashes`, records one row per `(user_id, cache_key)`: the hash of the real inputs that produced that target's last output. The helpers live in `generationCache.ts`—`stableHash()`, `isGenerationFresh()`, and `recordGenerationHash()`.
+
+Before a target calls the model, it computes the hash of its current inputs. If that hash matches the stored one, the target skips generation entirely and leaves its existing output row in place. A target whose inputs are unchanged is a cheap no-op—one indexed read—so unchanged pages cost nothing.
+
+Each target hashes only its own real inputs:
+
+- Each science hashes that science's own answered Story questions (`science:<key>`).
+- Each Insights tab hashes the science memos, the consolidated long-horizon memory note, and that tab's latest feedback.
+- Memory consolidation hashes Story answers, Tiny Task answers, and feedback—deliberately excluding page views.
+
+The cache fails open. Any database error is treated as "not fresh," so a cache problem can never silently serve stale content—it can only cause an unnecessary regeneration.
+
+This is also what de-amplifies the science layer. Events enqueue named bundles, and within a bundle the first target that needs a given science pays to generate it; every later dependent that re-enters that science gets a cache hit. Each science therefore runs at most once per bundle, not once per dependent.
+
+`page:today` is the deliberate exception: it is not input-hash cached, because it is meant to stay event-responsive. It still benefits from the cache indirectly, because its science dependencies are cached.
+
+---
+
+# Memory Consolidation
+
+Memory follows the same background-first philosophy as everything else in the pipeline, with one difference: it does not run every time evidence changes.
+
+Meaningful evidence flags a user's memory as due for consolidation, the same way it flags Today or Insights as due for regeneration.
+
+A background worker picks up that flag later and rewrites the durable memory note in one pass.
+
+Concretely, `memory:consolidate` is bundled onto the same evidence changes that refresh Today and Insights, and it is guarded by the same input-hash cache. Its hash covers Story answers, Tiny Task answers, and feedback, but deliberately excludes page views—so a bundle that only reflects passive page activity does not trigger a paid consolidation.
+
+Higher-level generators never wait for this to finish.
+
+They simply read whatever the memory note currently says, the same way they read any other stored knowledge.
+
+See Memory Model for what gets remembered and how it is allowed to be used.
+
+---
+
 # Reading vs Generation
 
 Generation and reading are intentionally separated.
@@ -246,6 +290,7 @@ Examples include:
 - page guidance
 - summaries
 - recommendations
+- durable memory notes
 - future coaching state
 
 Claude (or any future model) is not the source of truth.
@@ -267,6 +312,8 @@ Running the same generation twice with identical evidence should produce functio
 Generators should avoid hidden state.
 
 Evidence should determine outputs.
+
+Idempotency is now enforced concretely, not just aspirationally. The input-hash cache (see Caching and De-Amplification) short-circuits any target whose inputs are unchanged, so re-running a generation on identical evidence is a literal no-op—the model is never called and the existing output row is served as-is.
 
 ---
 

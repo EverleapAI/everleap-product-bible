@@ -1,5 +1,10 @@
 # Big Five (Five-Factor Model)
 
+> **Status: planned — not yet implemented.** The Big Five is not registered in
+> `scienceRegistry.ts`. The implemented sciences today are Ikigai, Enneagram,
+> and What Color Is Your Parachute (Skills). This document is the design intent
+> for when the Big Five is added.
+
 ## Purpose
 
 The Big Five provides Everleap with a framework for understanding broad behavioral tendencies.

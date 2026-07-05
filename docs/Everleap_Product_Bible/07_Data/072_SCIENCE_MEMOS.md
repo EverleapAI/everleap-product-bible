@@ -58,7 +58,7 @@ Every page reuses that knowledge.
 
 Each science has one responsibility.
 
-Examples include:
+Three sciences are currently implemented:
 
 Ikigai
 
@@ -66,17 +66,25 @@ Ikigai
 
 Motivational hypotheses
 
+(code identity `Ikigai/Motivations`, target `science:ikigai`)
+
 Enneagram
 
 ↓
 
 Behavioral and motivational patterns
 
-WCIYP
+(code identity `Enneagram/Strengths`, target `science:enneagram`)
+
+What Color Is Your Parachute
 
 ↓
 
 Transferable capabilities
+
+(code identity `Parachute/Skills`, target `science:parachute`—"WCIYP" is a human abbreviation, not a code identifier)
+
+The following sciences are planned but **not yet implemented**. They are part of the intended framework, not live generators:
 
 SDT
 
@@ -151,11 +159,14 @@ Typical fields include:
 - tensions
 - missing information
 - questions to reduce uncertainty
+- an optional `observations` array
 - source metadata
 
 Individual sciences may extend the structure.
 
 The overall shape should remain consistent.
+
+Note that not every field has its own database column. `user_science_insights` gives dedicated columns to confidence, hypotheses, missing information, questions, and evidence, but `tensions` (and the `observations` array, when present) live inside the `source_snapshot` JSON rather than in dedicated columns.
 
 ---
 
@@ -248,11 +259,11 @@ These questions improve future generations.
 
 # Confidence
 
-Confidence belongs to individual hypotheses.
+Confidence exists at two levels.
 
-Not to the memo itself.
+Each hypothesis carries its own confidence, and different hypotheses within the same science may have very different confidence levels.
 
-Different hypotheses within the same science may have very different confidence levels.
+The memo also carries a single memo-level confidence, expressing how strongly the science as a whole is supported. It is persisted to the `confidence` column on `user_science_insights`, alongside—not instead of—the per-hypothesis values.
 
 Confidence should always reflect:
 
@@ -293,6 +304,10 @@ Every memo should be regenerated from evidence.
 Evidence is permanent.
 
 Memos are temporary.
+
+Regeneration is disposable but not wasteful. Each science is guarded by an input-hash cache keyed `science:<key>`: the hash covers only that science's own answered Story questions. When those answers are unchanged, the memo is not regenerated—the existing row is left in place and the model is never called.
+
+This also de-amplifies the science layer within a bundle. Events enqueue bundles of targets, several of which depend on the same science. The first dependent to reach a changed science pays to regenerate it; every later dependent in that bundle hits the cache instead. Each science therefore runs at most once per bundle, not once per dependent.
 
 ---
 

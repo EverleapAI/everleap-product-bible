@@ -75,12 +75,14 @@ Running
 
 ↓
 
-Completed
+Complete
 
 or
 
 Failed
 ```
+
+The status values are exactly `pending`, `running`, `complete`, and `failed`. (Note `complete`, not "completed"; there is no separate "background" or "scheduled" status.)
 
 The lifecycle should be deterministic and fully observable.
 
@@ -118,14 +120,40 @@ Examples include:
 - science:enneagram
 - science:parachute
 - page:today
-- page:insights
+- page:insights_summary
+- page:insights_motivations
+- page:insights_strengths
+- page:insights_skills
+- page:insights_time_twin
+- page:insights_fun_facts
+- page:explore
 - recommendation:careers
 - recommendation:actions
+- memory:consolidate
 - future coaching agents
+
+Insights is driven per-tab. Each Insights tab is its own target (`page:insights_summary`, `page:insights_motivations`, `page:insights_strengths`, `page:insights_skills`, `page:insights_time_twin`, `page:insights_fun_facts`), and live events enqueue those.
+
+The combined single-pass `page:insights` target still exists and the dispatcher still routes it, but it is deprecated/orphaned: no live event enqueues it, and it appears only in the unused `REFRESH_INSIGHTS` and `FULL_REBUILD` bundles.
 
 Targets describe work.
 
 They do not describe implementation.
+
+---
+
+# Bundles
+
+Events do not enqueue raw targets one at a time. They enqueue named **bundles**—curated sets of targets that belong together for a given interaction.
+
+Examples include:
+
+- `REFRESH_TODAY` — Today plus memory consolidation.
+- `REFRESH_INSIGHTS_SUMMARY` — every per-tab Insights target, actions, Explore, and memory consolidation.
+
+A Story answer, for instance, enqueues `REFRESH_TODAY` and `REFRESH_INSIGHTS_SUMMARY` together, and each target in the bundle becomes its own request.
+
+The bundle is the unit an event dispatches; the individual request is still the unit a worker claims. Two bundles (`REFRESH_INSIGHTS` and `FULL_REBUILD`) are defined but no longer driven by any live event; they are the only remaining references to the orphaned combined `page:insights` target.
 
 ---
 
@@ -159,7 +187,13 @@ The dispatcher remains intelligent.
 
 Not every request has the same urgency.
 
-Typical execution modes include:
+The execution mode is one of exactly three values: `deferred`, `immediate`, or `blocking`. The default is `deferred`.
+
+### Deferred
+
+Normal asynchronous generation. Most requests belong here, and it is the default when no mode is specified.
+
+---
 
 ### Immediate
 
@@ -172,23 +206,11 @@ Examples:
 
 ---
 
-### Background
+### Blocking
 
-Normal asynchronous generation.
-
-Most requests belong here.
+The request is expected to run in-line with the interaction rather than being picked up later by a worker.
 
 ---
-
-### Scheduled
-
-Future rebuilding.
-
-Examples:
-
-- nightly refresh
-- weekly synthesis
-- periodic recommendations
 
 Execution mode should affect scheduling.
 
@@ -203,6 +225,8 @@ Every request should be safe to execute multiple times.
 If identical evidence produces identical work, repeated execution should not create inconsistent results.
 
 Generators should be deterministic whenever practical.
+
+This is enforced concretely by an input-hash cache. A table, `generation_input_hashes`, stores one hash per `(user_id, cache_key)`: the hash of the inputs that produced that target's last output. Before a target calls the model, it re-hashes its current inputs; if the hash is unchanged, it skips generation and leaves the existing output in place. Re-running a request on unchanged inputs is therefore a literal no-op rather than a repeated AI call—this is the platform's primary idempotency and cost mechanism. The cache fails open: any lookup error is treated as "not fresh," so it can only ever cause an unnecessary regeneration, never serve stale content.
 
 ---
 

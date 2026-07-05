@@ -223,6 +223,8 @@ This allows Everleap to:
 - debug regressions
 - improve prompts
 
+In the current implementation this is only partially realized. Versioning is informal: identifiers are carried as strings inside the JSON `source_snapshot` / payload of a generated row, not as first-class columns. Science memos in particular record no prompt or model version at all—their `source_snapshot` captures the trigger, an answer count, and a `generatedBy` label, but nothing that pins the exact prompt or model. First-class version columns remain aspirational.
+
 ---
 
 # Regeneration
@@ -242,6 +244,8 @@ Evidence is permanent.
 
 Knowledge is reproducible.
 
+To keep that rebuild cost-safe, a small infrastructure/cache table, `generation_input_hashes`, records one hash per `(user_id, cache_key)`—the hash of the inputs that produced each target's last output. A target whose inputs are unchanged is skipped rather than regenerated. This table holds no user-facing knowledge; it is disposable bookkeeping and can itself be dropped and rebuilt at the cost of one extra regeneration per target.
+
 ---
 
 # Longitudinal Development
@@ -249,6 +253,8 @@ Knowledge is reproducible.
 Growth is one of Everleap's greatest advantages.
 
 The data model should preserve history rather than overwrite it.
+
+Today it does not yet. The generated tables—`user_science_insights`, `user_page_guidance`, and `user_memory_profile`—upsert in place (`ON CONFLICT (user, key) DO UPDATE`). Each keeps a single latest row per `(user, key)`; regeneration overwrites the previous output and no prior-version rows are retained. The longitudinal history described below is therefore aspirational: the questions it wants to answer require history that is not currently being kept.
 
 Questions the system should eventually answer include:
 

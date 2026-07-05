@@ -10,9 +10,12 @@
 
 | User Action | Endpoint | Enqueues via | Targets | Trigger string | Mode / Priority |
 |---|---|---|---|---|---|
-| Submit a Story answer | `storyAnswer.ts` | `requestUserGeneration` | `REFRESH_TODAY` (`page:today`) + `REFRESH_INSIGHTS_SUMMARY` (`page:insights_summary`) | `"story_answer"` | deferred, priority 100 |
-| Finish all Story questions | `storyComplete.ts` | `requestUserGeneration` | `REFRESH_TODAY` + `REFRESH_INSIGHTS` (`page:insights_summary` + `page:insights`) | `"story_completed"` | immediate, priority 10 |
+| Submit a Story answer | `storyAnswer.ts` | `requestUserGeneration` | `REFRESH_TODAY` + `REFRESH_INSIGHTS_SUMMARY` | `"story_answer"` | deferred, priority 100 |
+| Finish all Story questions | `storyComplete.ts` | `requestUserGeneration` | `REFRESH_TODAY` + `REFRESH_INSIGHTS_SUMMARY` | `"story_completed"` | immediate, priority 10 |
 | Answer a Tiny Task | `microTasks/answerMicroTask.ts` | `requestUserGeneration` | `REFRESH_TODAY` + `REFRESH_INSIGHTS_SUMMARY` | `"tiny_task_answered"` | deferred, priority 100 |
+| Rate a Quick Check (Insights feedback) | `insightsSummaryFeedback.ts` | `requestUserGeneration` | per-tab target for motivations/strengths/skills (e.g. `[page:insights_strengths, memory:consolidate]`), else `REFRESH_INSIGHTS_SUMMARY` | `"insights_summary_feedback"` | deferred, priority 100 |
+| Save an Explore path / mark an Action done | `userActions.ts` | `requestUserGeneration` | `REFRESH_TODAY` | `"explore_saved"` (on saving an `explore_path`) / `"action_completed"` (on status→`done`) | deferred, priority 100 |
+| View Action Suggestions (cache stale/missing) | `getActionSuggestions.ts` | `requestUserGeneration` | `recommendation:actions` | `"action_suggestions_view"` | deferred, priority 50 (background warm; non-blocking read) |
 | Complete onboarding | `onboardingClaim.ts` | **bypasses the queue** | calls `generateTodayGuidanceForUser(user.id, context, "onboarding_completed")` directly, fire-and-forget | n/a | synchronous in-process; errors only logged |
 
 `requestUserGeneration` (`lib/requestUserGeneration.ts`) is a thin wrapper around `enqueueGeneration`: it dedupes the target list and calls `enqueueGeneration` once per target, defaulting to `executionMode: "deferred"`, `priority: 100` unless the caller overrides it.
@@ -24,15 +27,25 @@
 Callers don't pass raw target-key arrays; they pass named bundles:
 
 ```
-REFRESH_TODAY              -> [page:today]
-REFRESH_INSIGHTS_SUMMARY   -> [page:insights_summary]
-REFRESH_INSIGHTS           -> [page:insights_summary, page:insights]
-REFRESH_EXPLORE            -> [page:explore]              (defined, unused — explore is a stub)
-REFRESH_RECOMMENDATIONS    -> [recommendation:careers, recommendation:actions]  (defined, unused — stubs)
-FULL_REBUILD                -> all targets                 (defined, unused)
+REFRESH_TODAY              -> [page:today, memory:consolidate]
+REFRESH_INSIGHTS_SUMMARY   -> [page:insights_summary,
+                               page:insights_motivations,
+                               page:insights_strengths,
+                               page:insights_skills,
+                               page:insights_time_twin,
+                               page:insights_fun_facts,
+                               recommendation:actions,
+                               page:explore,
+                               memory:consolidate]
+REFRESH_INSIGHTS           -> [page:insights_summary, page:insights]   (defined, now UNUSED)
+REFRESH_EXPLORE            -> [page:explore]                            (defined, unused)
+REFRESH_RECOMMENDATIONS    -> [recommendation:careers, recommendation:actions]  (defined, unused)
+FULL_REBUILD               -> [page:today, page:insights_summary, page:insights,
+                               page:explore, recommendation:careers,
+                               recommendation:actions]                 (defined, unused)
 ```
 
-Only `REFRESH_TODAY`, `REFRESH_INSIGHTS_SUMMARY`, and `REFRESH_INSIGHTS` are referenced by any caller today. The other three bundles exist for future targets that are registered (`102_GENERATOR_REGISTRY.md`) but not yet implemented.
+Only `REFRESH_TODAY` and `REFRESH_INSIGHTS_SUMMARY` are referenced by live callers today. `REFRESH_INSIGHTS` is now **dead relative to live triggers** — nothing enqueues it anymore, which also means the combined `page:insights` target (which it was the only path to) is no longer reached from any live trigger; the per-tab insight targets in `REFRESH_INSIGHTS_SUMMARY` replaced it (they write the rich per-tab payloads the old combined path didn't). `REFRESH_EXPLORE`, `REFRESH_RECOMMENDATIONS`, and `FULL_REBUILD` are defined but unused; the two remaining stubbed targets they reference (`recommendation:careers` and — via `FULL_REBUILD` — `page:insights`) are registered but not exercised here (`102_GENERATOR_REGISTRY.md`).
 
 ## Why science targets are never directly enqueued
 

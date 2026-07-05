@@ -112,6 +112,8 @@ Examples include:
 
 Determines how strongly a hypothesis is expressed.
 
+Confidence lives at two levels here. Each hypothesis carries its own confidence, and the memo also carries a single memo-level confidence—persisted to `user_science_insights.confidence`—that expresses how strongly the science as a whole is supported. The two coexist: memo-level confidence is not a substitute for, and does not override, the per-hypothesis values.
+
 ---
 
 ## Today

@@ -91,8 +91,62 @@ Stores generated Today guidance and Insights Summary content.
 > **Note:** generation status (`generating` / `ready` / `failed`) is tracked inside the `source_snapshot` JSON blob (`source_snapshot.guidance_generation`) rather than as a real column — there is no first-class status field on this table the way there is on `user_generation_requests`. Similarly, `getTodayGuidance.ts` derives `reflection` / `observation` / `next_step` for the API response by splitting the single `guidance_text` string on blank lines at *read* time — these are not stored as structured fields, despite the Bible's "structured before narrative" principle (`061_DATABASE_PHILOSOPHY.md`).
 
 ### `user_micro_tasks`
-"Tiny Tasks" attached to Today guidance.
-- `id`, `user_id`, `page_key`, `signal_key`, `question`, `options_json`, `selected_option`, `selected_option_index`, `source_guidance_id` (fk → `user_page_guidance`), `created_at`, `answered_at`
+"Tiny Tasks" attached to Today and Insights guidance — a cycling batch of 3 per (user, page_key) generation (see `2026-07-05-micro-task-batches.sql`).
+- `id`, `user_id`, `page_key`, `signal_key`, `question`, `options_json`, `selected_option`, `selected_option_index`, `source_guidance_id` (fk → `user_page_guidance`), `batch_id` (uuid, groups the 3 rows written together in one generation call — `source_guidance_id` can't be used for this since it's a stable per-(user,page_key) upsert id, not fresh per generation), `batch_position` (smallint, 0-2, display order within the batch), `created_at`, `answered_at`
+- Indexes: `idx_user_micro_tasks_user_page_created` (user_id, page_key, created_at desc — latest batch lookup), `idx_user_micro_tasks_batch_id` (fetch all rows of a batch), `idx_user_micro_tasks_user_created` (user_id, created_at desc — cross-page-key recent-question history used to avoid repeating questions across generations), `idx_user_micro_tasks_user_signal` (user_id, signal_key, created_at desc).
+- Answered rows are never deleted — only unanswered rows are cleared before writing a new batch — so this table also serves as durable per-user question history.
+
+### `prompt_lab_unlocks`
+Short-lived second-factor unlock for the internal "Prompt Lab" live-preview tool (see `2026-07-06-prompt-lab-unlocks.sql`) — mirrors `sessions`' shape (hash-only, never store the raw token). A correct passcode grants a temporary unlock on top of an existing logged-in session; it is not a login replacement.
+- `id`, `user_id` (fk → `users`), `token_hash`, `created_at`, `expires_at`, `revoked_at`.
+
+### `prompt_lab_rate_limits`
+Fixed-window rate limiting for Prompt Lab (see `2026-07-06-prompt-lab-rate-limits.sql`) — throttles passcode brute-forcing (`action = 'unlock_attempt'`) and the synchronous on-demand AI preview calls (`action = 'generate'`) independently of the app's normal async generation queue.
+- `user_id` (fk → `users`), `action`, `window_start`, `request_count`. Primary key `(user_id, action, window_start)`.
+
+### `generation_input_hashes`
+The universal input-hash cache for the generation pipeline (`scripts/2026-07-05-generation-input-hashes.sql`, used by `src/lib/generation/generationCache.ts`). Each `(user, cache_key)` records the hash of the inputs that produced that target's last output, so a target can skip its AI call when its real inputs are unchanged (`cache_key` examples: `'science:Ikigai/Motivations'`, `'insights_motivations'`, `'memory:consolidate'`). This is what makes broad/whole-account regeneration cost-safe.
+- `user_id` (fk → `users`), `cache_key`, `input_hash`, `updated_at`. Primary key `(user_id, cache_key)`.
+
+### `user_memory_profile`
+The user memory/primer system — one row per user holding a durable, AI-consolidated summary across Story answers, Tiny Task answers, and Quick Check feedback (`scripts/2026-07-02-user-memory-profile.sql`). Written by the `memory:consolidate` target (`consolidateUserMemory.ts`); the "recent window" companion is computed live at read time in `userMemoryStore.ts` rather than stored here.
+- `user_id` (pk, fk → `users`), `long_horizon_summary`, `updated_at`.
+
+### `user_content_events`
+The implicit (Tier 2) signal layer of the memory system — page/tab-level view tracking (`scripts/2026-07-03-user-content-events.sql`, written by `trackContentEvent.ts`). Feeds only the long-horizon memory consolidation, never the recent-window used for conversational callbacks.
+- `id`, `user_id` (fk → `users`), `channel` (default `'app'`), `event_type` (default `'page_viewed'`), `page_key`, `target`, `created_at`.
+- Index: `idx_user_content_events_user_created` (user_id, created_at desc).
+
+### `insights_summary_feedback`
+Backend storage for the Insights Summary / per-tab "Quick Check" rating card (`scripts/2026-07-01-insights-summary-feedback.sql`), previously only in browser localStorage. Written by `insightsSummaryFeedback.ts`.
+- `id`, `user_id` (fk → `users`), `page_key` (default `'insights_summary'`), `rating` (check: `'mostly'` | `'somewhat'` | `'not_really'`), `note`, `source_guidance_id` (fk → `user_page_guidance`), `created_at`.
+- Index: `idx_insights_summary_feedback_user_page` (user_id, page_key, created_at desc).
+
+### `time_twin_figures`
+The pre-built Time Twin figure library (`scripts/2026-07-03-time-twin-figures.sql`) — one row per real historical figure with vetted, person-neutral content plus a generated portrait (stored in-DB) and an embedding of the pattern signature for runtime matching. The personalized "why this rhymes with you" beat is written per-user at runtime, not stored here.
+- `id`, `slug` (unique), `name`, `era`, `tagline`, `mind_type`, `visual_profile_key`, `tiles` (jsonb), `story_beats` (jsonb), `superpower`, `watchout`, `try_this_week`, `learn_more_href`, `pattern_signature`, `embedding` (jsonb), `image_bytes` (bytea), `image_content_type`, `image_model`, `created_at`, `updated_at`.
+- Index: `idx_time_twin_figures_visual_profile` (visual_profile_key).
+
+### `time_twin_reflections`
+Server-side persistence for Time Twin reflections (`scripts/2026-07-03-time-twin-reflections.sql`), previously localStorage-only. One row per `(user, twin)`, upserted in place as the user edits (no history kept). Written by `timeTwinReflection.ts`.
+- `user_id` (fk → `users`), `twin_id`, `reflection` (default `''`), `updated_at`. Primary key `(user_id, twin_id)`.
+
+### `explore_paths` / `explore_path_matches`
+The Explore Phase B two-layer content model (`scripts/2026-07-04-explore-catalog.sql`; see `063_EXPLORE_ARCHITECTURE.md`). `explore_paths` is the shared, user-independent, cacheable content catalog and is live. `explore_path_matches` is defined for per-user personalization but is **not yet used by any code** — matching is currently computed client-side; the table is scaffolding for the planned server-side match layer.
+- **`explore_paths`** — `id` (pk, canonical key e.g. `"work:software-developer"`), `lane`, `slug`, `title`, `taxonomy_code`, `content` (jsonb — the ExplorePath spine), `sources` (jsonb), `embedding` (jsonb), `source_version`, `content_model` (default `'on-demand'`; `seed` | `warm` | `on-demand`), `created_at`, `updated_at`. Unique on `(lane, slug)`. Indexes on `lane` and `taxonomy_code`.
+- **`explore_path_matches`** — `id`, `user_id` (fk → `users`), `path_id`, `lane`, `score` (0..100), `rank`, `why_you`, `reasons` (jsonb), `generated_at`. Unique on `(user_id, path_id)`. Index `idx_explore_path_matches_user_lane` (user_id, lane, rank).
+
+### `explore_user_summary`
+Per-user agentic Explore "whole-life read" narrative (`scripts/2026-07-04-explore-user-summary.sql`), cached per user and regenerated when its inputs change (`input_hash`). Written by the `page:explore` target (`exploreSummary.ts`).
+- `user_id` (pk, fk → `users`), `input_hash`, `payload` (jsonb — `{ headline, body, ... }`), `generated_at`.
+
+### `user_actions`
+App-wide "Actions" capture — concrete next-steps a user commits to, from any surface (`scripts/2026-07-04-user-actions.sql`). Read/written by `userActions.ts` (`guidance/actions`).
+- `id`, `user_id` (fk → `users`), `source_type` (`'explore_path'` | `'insights'` | `'today'` | ...), `source_ref`, `lane`, `title`, `description`, `href`, `status` (default `'saved'`; `saved` | `doing` | `done` | `dismissed`), `created_at`, `updated_at`. Unique on `(user_id, source_type, source_ref, title)`. Indexes `idx_user_actions_user_status` and `idx_user_actions_user_source`.
+
+### `user_action_suggestions`
+Agent-proposed action suggestions, read-through cached per user, regenerated only when profile signals change (`input_hash`); mirrors `explore_user_summary` (`scripts/2026-07-04-user-action-suggestions.sql`). Written by the `recommendation:actions` target (`actionSuggestions.ts`); accepting a suggestion promotes it into a committed `user_actions` row.
+- `user_id` (pk, fk → `users`), `input_hash`, `payload` (jsonb), `generated_at`.
 
 ---
 
@@ -101,9 +155,9 @@ Stores generated Today guidance and Insights Summary content.
 A layer not described in the Bible at all — purely operational.
 
 - **`ai_model_pricing`** — `provider`, `model`, `effective_from`, `effective_to`, `input_usd_per_1m_tokens`, `output_usd_per_1m_tokens`, `cached_input_usd_per_1m_tokens`. Time-bounded pricing rows looked up by `(provider, model, effective_to IS NULL)`.
-- **`ai_usage_audit`** — `user_id`, `provider`, `model`, `feature`, `actor_type`, `source`, `prompt_mode`, `template_key`, `input_tokens`, `output_tokens`, `cached_input_tokens`, `input_cost_usd`, `output_cost_usd`, `cached_input_cost_usd`, `estimated_cost_usd`, `request_id`, `metadata`, `created_at`. Written by `recordAiUsage.ts`, aggregated by `functions/ai/usageSummary.ts`.
+- **`ai_usage_audit`** — `user_id`, `provider`, `model`, `feature`, `actor_type`, `source`, `prompt_mode`, `template_key`, `input_tokens`, `output_tokens`, `cached_input_tokens`, `input_cost_usd`, `output_cost_usd`, `cached_input_cost_usd`, `estimated_cost_usd`, `request_id`, `metadata`, `created_at`. Written by `recordAiUsage.ts`, aggregated by `functions/ai/usageSummary.ts` (which splits spend into `app` / `ai_lab` / `prompt_lab` source buckets — see `101_API_CONTRACTS.md`).
 
-> **Note:** not every AI call is audited. The Insights Summary narrative generation (`summaryNarrative.ts`, called via `generateInsightsSummaryForUser`) does not call `recordAiUsage` — it's the one real AI call in the system whose cost is currently untracked. See `104_PROMPT_CATALOG.md`.
+> **Note:** the Insights Summary narrative generation (`summaryNarrative.ts`, called via `generateInsightsSummaryForUser`) is now audited — `summaryGenerator.ts` threads a `track: { feature: "insights_summary" }` through `generateSummaryContent` → `runAnthropic` → `recordAiUsage`. The Prompt Lab preview path (`prompt-lab/preview`) is likewise audited under `source: "prompt_lab_preview"`. See `104_PROMPT_CATALOG.md`.
 
 ---
 

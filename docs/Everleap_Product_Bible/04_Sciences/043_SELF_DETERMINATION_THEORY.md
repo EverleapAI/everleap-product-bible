@@ -1,5 +1,10 @@
 # Self-Determination Theory (SDT)
 
+> **Status: planned — not yet implemented.** SDT is not registered in
+> `scienceRegistry.ts`. The implemented sciences today are Ikigai, Enneagram,
+> and What Color Is Your Parachute (Skills). This document is the design intent
+> for when SDT is added.
+
 ## Purpose
 
 Self-Determination Theory (SDT) helps Everleap understand **what conditions allow a person to thrive**.

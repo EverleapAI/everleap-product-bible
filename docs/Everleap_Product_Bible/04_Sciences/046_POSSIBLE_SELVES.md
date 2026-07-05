@@ -1,5 +1,10 @@
 # Possible Selves
 
+> **Status: planned — not yet implemented.** Possible Selves is not registered
+> in `scienceRegistry.ts`. The implemented sciences today are Ikigai, Enneagram,
+> and What Color Is Your Parachute (Skills). This document is the design intent
+> for when Possible Selves is added.
+
 ## Purpose
 
 Possible Selves helps Everleap understand **who the user may become if they continue growing in different directions.**

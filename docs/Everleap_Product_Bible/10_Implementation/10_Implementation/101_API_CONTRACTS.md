@@ -40,8 +40,8 @@ This is consistently applied on most endpoints, but **not all** — see the flag
 | `me.ts` | `me` | GET | session required | none | `{ ok, onboardingAnswers, user:{...} }` | read-only |
 | `health.ts` | (default route, no explicit `route` set — binds to `/api/health`) | GET | none | none | `{ status, db, dbTime, databaseName, tables:{...} }` | read-only DB connectivity check |
 | `flows/getFlow.ts` | `flows/{key}` | GET | **none enforced** | route param `key` | `{ ok, flow:{id,key,name,nodes:[...]} }` | read-only |
-| `ai/usageSummary.ts` | `ai/usage/summary` | GET | **none enforced** | none | `{ ok, providers:{...} }` | read-only, aggregates `ai_usage_audit` |
-| `aiLabRun.ts` | `ai/lab/run` | POST | **none enforced** (attaches `user.id` opportunistically if cookie present) | `{ provider, prompt, answers[], userCharacterLimit?, promptMode?, templateKey? }` | `{ ok, internal, user, total, output, provider, model, usage, estimatedCostUsd }` | Two AI calls; two `ai_usage_audit` rows |
+| `ai/usageSummary.ts` | `ai/usage/summary` | GET | **none enforced** | none | `{ ok, providers:{...}, sources:{ app, ai_lab, prompt_lab } }` — each source is `{ requestCount, monthToDateCost, allTimeCost }`; each provider adds `averageRequestCost` | read-only, aggregates `ai_usage_audit` |
+| `aiLabRun.ts` | `ai/lab/run` | POST | **session required + Prompt Lab unlock + rate-limited** (`requirePromptLabUnlock` then `checkPromptLabRateLimit` action `generate`, 6/60s → 429) | `{ provider, prompt, answers[], userCharacterLimit?, promptMode?, templateKey? }` | `{ ok, internal, user, total, output, provider, model, usage, estimatedCostUsd }` | Two AI calls; two `ai_usage_audit` rows (`source:"ai_lab"`) |
 
 ---
 
@@ -62,7 +62,7 @@ This is consistently applied on most endpoints, but **not all** — see the flag
 |---|---|---|---|---|---|---|
 | `storyNext.ts` | `story/next` | GET | session required | none | `{ ok, done, progress:{...}, categories[], question }` | read-only |
 | `storyAnswer.ts` | `story/answer` | POST | session required | `{ question_id, answer_text?, answer_json? }` | `{ ok, status:"saved" }` | Upserts `story_question_answers`; enqueues generation (`trigger:"story_answer"`, targets = `REFRESH_TODAY + REFRESH_INSIGHTS_SUMMARY`, deferred, priority 100) |
-| `storyComplete.ts` | `story/complete` | POST | session required | none | `202 { ok, status:"queued" }` | Enqueues generation (`trigger:"story_completed"`, targets = `REFRESH_TODAY + REFRESH_INSIGHTS`, immediate, priority 10) |
+| `storyComplete.ts` | `story/complete` | POST | session required | none | `202 { ok, status:"queued" }` | Enqueues generation (`trigger:"story_completed"`, targets = `REFRESH_TODAY + REFRESH_INSIGHTS_SUMMARY`, immediate, priority 10) |
 | `storyReset.ts` | `story/reset` | POST | session required **+ hardcoded reset code `"101010"`** | `{ code }` | `202 { ok, status:"rebuilding_today", deleted:{...} }` | Dev/QA utility — deletes Story answers and dependent generated state, fire-and-forget Today rebuild |
 
 ---
@@ -81,9 +81,37 @@ This is consistently applied on most endpoints, but **not all** — see the flag
 |---|---|---|---|---|---|---|
 | `guidance/getTodayGuidance.ts` | `guidance/today` | GET | session required | none | `{ ok, generation_status, is_updating, guidance:{...}, story_progress }` | read-only; derives `reflection`/`observation`/`next_step` by splitting `guidance_text` on blank lines |
 | `getInsightsSummary.ts` | `guidance/insights-summary` | GET | session required | none | `{ ok, pageKey, headline, guidanceText, nextActionLabel, nextActionRoute, generatedAt, payload }` | read-only |
+| `getInsightsMotivations.ts` | `guidance/insights-motivations` | GET | session required | none | `{ ok, payload, ... }` | read-only per-tab insight (Ikigai/motivations) |
+| `getInsightsStrengths.ts` | `guidance/insights-strengths` | GET | session required | none | `{ ok, payload, ... }` | read-only per-tab insight (Enneagram/strengths) |
+| `getInsightsSkills.ts` | `guidance/insights-skills` | GET | session required | none | `{ ok, payload, ... }` | read-only per-tab insight (Parachute/skills) |
+| `getInsightsTimeTwin.ts` | `guidance/insights-time-twin` | GET | session required | none | `{ ok, payload, ... }` | read-only per-tab insight (Time Twin) |
+| `getInsightsFunFacts.ts` | `guidance/insights-fun-facts` | GET | session required | none | `{ ok, payload }` | read-only per-tab insight (Fun Facts) |
+| `insightsSummaryFeedback.ts` | `guidance/insights-summary/feedback` | POST | session required | `{ rating, note?, page_key? }` (rating ∈ `mostly`/`somewhat`/`not_really`) | `{ ok }` | Inserts `insights_summary_feedback`; enqueues per-tab target (or `REFRESH_INSIGHTS_SUMMARY`), deferred, priority 100 |
+| `getActionSuggestions.ts` | `guidance/action-suggestions` | POST | session required | `{ force?: boolean }` | `{ ok, cache, generating, payload }` | **Default non-blocking:** `peekActionSuggestions` serves cache + enqueues background `recommendation:actions` (trigger `action_suggestions_view`, deferred, priority 50). `force=true` generates synchronously |
+| `userActions.ts` | `guidance/actions` | GET / POST / PATCH | session required | GET `?source_ref=&status=`; POST `{ sourceType, title, sourceRef?, lane?, description?, href?, status? }`; PATCH `{ id, status }` | `{ ok, actions }` / `{ ok, action }` | Read/save/update `user_actions`; saving an `explore_path` or marking `done` fires a deferred `REFRESH_TODAY` (`explore_saved` / `action_completed`) |
+| `getExplorePaths.ts` | `guidance/explore-paths` | GET | session required | `?lane=` | `{ ok, ... }` | read-only Explore deck |
+| `getExplorePath.ts` | `guidance/explore-path` | GET | session required | `?lane=&slug=` | `{ ok, ... }` | read-only single Explore path (on-demand content) |
+| `getExploreProfile.ts` | `guidance/explore-profile` | GET | session required | none | `{ ok, ... }` | read-only (first name + answers) |
+| `getExploreSummary.ts` | `guidance/explore-summary` | POST | session required | none | `{ ok, payload, cache }` | Read-through: `getOrGenerateExploreSummary` (input-hash cached) |
+| `getProfile.ts` | `guidance/profile` | GET | session required | none | `{ ok, profile }` | read-only user profile snapshot |
+| `timeTwinReflection.ts` | `guidance/time-twin-reflection` | GET / POST | session required | POST `{ twin_id, reflection }` | `{ ok, ... }` | Read/upsert `time_twin_reflections` |
+| `getTimeTwinFigureImage.ts` | `guidance/time-twin-figure-image` | GET | session required | `?slug=` | image bytes | Serves stored portrait from `time_twin_figures` |
+| `trackContentEvent.ts` | `track/event` | POST | session required | `{ page_key, ... }` | `{ ok }` | Inserts `user_content_events` (Tier-2 implicit signal) |
 | `summaryPreview.ts` | `ai/summary-preview` | GET | **none — and ignores caller identity** | none | raw `generateSummaryPayload(userId)` output | Regenerates and returns Insights Summary for a **hardcoded user ID** — see flags |
 | `generationRun.ts` | `generation/run` | POST | none | none | `{ ok, status:"nothing_to_run" }` or `{ ok, status:"completed", ... }` | Claims and runs exactly one pending generation request |
 | `generationTimer.ts` | timer trigger, `"0 * * * * *"` | n/a | n/a | n/a | n/a | The actual production worker loop — claims and runs up to `MAX_BATCH_SIZE = 5` pending requests per tick (fires once per minute; see `103_EVENT_FLOW.md`) |
+
+---
+
+# Prompt Lab (internal live-preview tool)
+
+A second-factor unlock (`prompt_lab_unlocks`) sits on top of an existing logged-in session; a correct passcode grants a temporary unlock but is not a login replacement (see `100_DATABASE_SCHEMA.md`).
+
+| Function | Route | Method | Auth | Request | Response | Side effects |
+|---|---|---|---|---|---|---|
+| `promptLab/promptLabUnlock.ts` | `prompt-lab/unlock` | POST | session required **+ rate-limited** (`unlock_attempt`, 5/900s → 429) | `{ passcode }` | `{ ok, token, expiresAt }` or `401` | Verifies passcode against `PROMPT_LAB_PASSCODE` (timing-safe); inserts `prompt_lab_unlocks` (24h) |
+| `promptLab/promptLabStatus.ts` | `prompt-lab/status` | GET | session optional | none | `{ ok, unlocked }` (`unlocked:false` if no session) | read-only |
+| `promptLab/promptLabPreview.ts` | `prompt-lab/preview` | POST | **session required + Prompt Lab unlock + rate-limited** (`generate`, 6/60s → 429) | `{ page_key, target_field?, target_word_count?, tone_instruction?, misc_note? }` | `{ ok, page_key, target_field, ..., target_text, result }` | One live AI call per preview, audited under `source:"prompt_lab_preview"` |
 
 ---
 
@@ -91,7 +119,7 @@ This is consistently applied on most endpoints, but **not all** — see the flag
 
 These are real findings from reading the code, not stylistic nitpicks — worth a deliberate decision (fix, accept, or document-as-intentional) rather than silent drift:
 
-1. **No Azure-Functions-level auth anywhere.** Security is 100% the in-handler session-cookie check, and several endpoints skip it entirely: `getFlow`, `usageSummary`, `aiLabRun`, `summaryPreview`. For `getFlow` this is plausibly fine (flow content isn't sensitive). For `usageSummary` (cost data) and `aiLabRun` (arbitrary prompt execution against paid AI APIs) it's worth a deliberate call.
+1. **No Azure-Functions-level auth anywhere.** Security is 100% the in-handler session-cookie check, and a few endpoints skip it entirely: `getFlow`, `usageSummary`, `summaryPreview`. For `getFlow` this is plausibly fine (flow content isn't sensitive). For `usageSummary` (cost data) it's worth a deliberate call. `aiLabRun` is **no longer** in this list — it now returns 401 without a session and additionally requires a Prompt Lab unlock plus rate-limiting before executing any prompt.
 2. **`summaryPreview.ts` has a hardcoded user ID (`79bd748e-37ca-4caf-bcc4-ba300c379dfa`) and zero auth.** Reads as a debug leftover from development. If reachable in a deployed environment, anyone can hit this route and read that user's generated Insights Summary. Should either be removed or gated behind a dev-only check.
 3. **`passkeyLoginOptions.ts`** sets `current_challenge` on *every* user who owns a passkey, not a specific user — this is how usernameless/discoverable-credential WebAuthn works (the real user is resolved later via `credential_id` in `passkeyLoginVerify.ts`), but it's a broad UPDATE worth knowing about rather than assuming is a bug if you encounter it.
 4. **`getTodayGuidance.ts`** parses `reflection`/`observation`/`next_step` out of a single stored string at read time, rather than storing them as structured fields — see `100_DATABASE_SCHEMA.md`'s "Known Schema Debt" section.

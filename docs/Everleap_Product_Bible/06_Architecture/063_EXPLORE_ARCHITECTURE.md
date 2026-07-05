@@ -2,31 +2,52 @@
 
 ## Purpose
 
-Explore is the largest and most important section of the product. Today it is a
-time-boxed prototype: hardcoded mock content, `localStorage` signals, and
-keyword matching. This document defines how it becomes what the rest of the
-platform already is — **AI-generated knowledge, created in the background,
-stored in the database, and served instantly.**
+Explore is the largest and most important section of the product. This document
+began as the rebuild plan that took it from a time-boxed prototype — hardcoded
+mock content, `localStorage` signals, keyword matching — toward what the rest of
+the platform already is: **AI-generated knowledge, created in the background,
+stored in the database, and served instantly.** Much of that plan has now
+shipped; this doc is being kept as an **as-built** record where it has, and a
+plan where it hasn't.
 
 It is a direct application of the platform's central principle
 ([060 System Architecture](060_SYSTEM_ARCHITECTURE.md)):
 
 > **Pages consume knowledge. They never create it.**
 
-Status: **Draft for review — 2026-07-03.** Supersedes the prototype's
-mock/`localStorage` model.
+Status (updated 2026-07-05):
+
+- **Phase A · Consolidate & Reskin — SHIPPED.** One unified `ExplorePath` schema;
+  shared landing + detail engines; the dead engine and V1 debt deleted; Play
+  populated; the summary entry screen live.
+- **Phase B · Catalog + Generation (CONTENT layer) — SHIPPED.** The
+  `explore_paths` catalog table and read-through AI generation are live
+  (`getOrGeneratePath` → hit serves the stored row, miss calls Claude and
+  stores). Mock TypeScript is now only an instant Phase-A fallback, not the
+  source of truth.
+- **Phase B · MATCH layer — NOT built.** Per-user fit/scoring is still computed
+  **client-side** from `localStorage`. The `explore_path_matches` table exists
+  in the migration but **no code reads or writes it**, and there is no
+  `PathMatch` server type. "Recompute match on signal change" remains
+  outstanding.
+- **Phase C · Warming & Pre-seed — partial.** A per-user Explore *summary*
+  generator ships with input-hash caching and queue pre-warming; the tiered deck
+  warming and offline head pre-seed builder are not built yet.
 
 ---
 
-# Where We Are Today
+# Where We Started (Phase A baseline)
 
-Explore is five lanes behind a pill rail — **Work, Learning, World, Impact,
-Play**. The entry route redirects straight to Work; there is no summary screen.
-Everything is local mock TypeScript plus `localStorage` onboarding answers, and
-"recommendations" are keyword overlap between the two. No database, no AI.
+*This section records the prototype the rebuild started from, for context. Most
+of the debt below has since been cleared — see "What Shipped" next.*
 
-The depth is severely asymmetric, and the section is really **five diverging
-half-systems plus a dead sixth**.
+Explore was five lanes behind a pill rail — **Work, Learning, World, Impact,
+Play**. The entry route redirected straight to Work; there was no summary screen.
+Everything was local mock TypeScript plus `localStorage` onboarding answers, and
+"recommendations" were keyword overlap between the two. No database, no AI.
+
+The depth was severely asymmetric — really **five diverging half-systems plus a
+dead sixth**.
 
 | Lane | Screens deep | Mocks | State |
 |---|---|---|---|
@@ -34,21 +55,80 @@ half-systems plus a dead sixth**.
 | **Learning** | 2 (landing → detail) | 6 | Radar chart, quick-check, opportunities. |
 | **World** | 2 | 6 | Richest detail page of the shallow four. |
 | **Impact** | 2 | 6 | Schema carries an unrendered layer (branches / growth / how-it-feels). |
-| **Play** | 2 | 6 | Data files are **empty (0 bytes)** — content synthesized from the URL slug; has a live routing bug. |
+| **Play** | 2 | 6 | Data files were **empty (0 bytes)** — content synthesized from the URL slug; had a live routing bug. |
 
-### Debt to clear before building up
+### Debt to clear before building up — done (Phase A)
 
-- **An entire orphaned recommendation engine** — `exploreRecommendations`,
-  `exploreCatalog`, `exploreEngine`, `exploreSeedData`, `exploreTypes`, and the
-  components `ExploreLaneRail` / `ExplorePathPanel` / `ExploreSpotlightPath` —
-  is imported by nothing.
-- **Each landing page is 1,300–1,700 lines** re-implementing the same
-  read-score-render logic five times over five subtly different schemas (theme
-  as `{r,g,b}` in three lanes but a CSS string in World; different lookup
-  strategies; quick-check in different places).
-- **Superseded V1 schemas** inside Work (`forecast`, `nextSteps`) sit beside the
-  `V2` versions that actually render, plus an unused `WorkPathSubnav` and schema
-  fields that never render.
+All three of these were cleared in Phase A:
+
+- **An entire orphaned recommendation engine** — the web files
+  `exploreRecommendations`, `exploreCatalog`, `exploreEngine`, `exploreSeedData`,
+  `exploreTypes`, and the components `ExploreLaneRail` / `ExplorePathPanel` /
+  `ExploreSpotlightPath` — were **deleted**. (Note: a *different*, live
+  `exploreCatalog.ts` and `exploreTypes.ts` now exist on the **API** side as the
+  catalog data-access layer and the server schema mirror — same names, new
+  purpose, not the deleted web files.)
+- **The five 1,300–1,700-line landing pages** that re-implemented the same
+  read-score-render logic over five subtly different schemas were **collapsed**
+  into one unified `ExplorePath` schema (`_data/exploreSchema.ts`) rendered by a
+  single landing engine (`ExploreLanding`) and detail engine (`ExplorePathDetail`).
+- **Superseded V1 schemas** inside Work (`forecast`, `nextSteps`), the unused
+  `WorkPathSubnav`, and never-rendered fields were removed; Play's empty data +
+  routing bug were fixed (Play now ships real content on the unified schema).
+
+---
+
+# What Shipped
+
+**Entry screen (not a redirect).** `/main/explore` no longer redirects to Work.
+It renders a summary entry screen — a per-lane teaser deck (the strongest pick
+from each of the five lanes) plus an agentic whole-life narrative — via
+`ExploreSummaryLoader` (`page.tsx` → `ExploreSummaryLoader` → `ExploreSummary`).
+The loader paints the mock composition instantly, then fetches each lane's deck
+from the DB catalog (`/api/explore/paths?lane=…`) and swaps each lane to its DB
+deck; any lane that misses keeps its mock deck, so it can't regress.
+
+**DB catalog + read-through generation (CONTENT layer).** The `explore_paths`
+table is the shared, user-independent content cache. `getOrGeneratePath(lane,
+title)` canonicalizes the title to a key, checks the catalog, and on a **hit**
+serves the stored `content` jsonb instantly; on a **miss** it gathers grounding
+facts (Wikipedia every lane; O\*NET + BLS for Work when creds are set), has
+Claude synthesize the full `ExplorePath`, writes the row, and serves it — cached
+for every future user. Detail pages wire through `ExplorePathDetailLoader`, which
+renders a mock immediately when one exists and swaps in the catalog row from
+`/api/explore/path?lane=…&slug=…`; a DB-only (warm) path with no mock loads
+straight from the catalog. Mock TypeScript is now only the instant Phase-A
+fallback, never the source of truth.
+
+**Per-user Explore summary generator (agentic whole-life read).**
+`exploreSummary.ts` (`getOrGenerateExploreSummary`) produces a short, grounded
+"whole-life view" — `{ headline, body, threads }` — synthesized from the user's
+own **story answers** (motivations / strengths / skills), sourced **server-side**
+from the DB, never the client body, so the cache key is deterministic. It is
+input-hash cached per user in **`explore_user_summary`** (regenerated only when
+the signals change), and pre-warmed through the generation queue via the
+**`page:explore`** target so the card reads back a cache hit instead of blocking
+on a live call. A Prompt Lab preview path (`previewExploreSummary`, reached via
+`functions/promptLab/promptLabPreview.ts`) regenerates it live with founder
+overrides layered on, tracked under the `prompt_lab_preview` cost source and
+never persisted.
+
+**Progressive disclosure on detail pages.** `ExplorePathDetail` renders its deep
+sections **collapsed by default** (a `Collapsible` whose title + one-line teaser
+read as a menu; tapping reveals the section) so the page stays short and
+scannable on a phone, instead of one long fully-expanded scroll.
+
+### Match layer — NOT built yet
+
+Per-user match is still the Phase-A client-side stand-in. **The
+`explore_path_matches` table exists in the migration but is unused by any code,
+and there is no `PathMatch` server type.** `_lib/exploreProfile.ts`
+reads the user's signal from the `localStorage` key
+`everleapOnboarding_v4_convo_min` (overlaid with the server's story answers via
+`/api/guidance/explore-profile` when logged in), and `_lib/scorePath.ts` scores
+each path **client-side** by keyword overlap for deck ordering and the signal
+meter. So the plan's *"recompute match on signal change (a generation-pipeline
+target)"* remains outstanding — see Phase B below.
 
 ---
 
@@ -187,11 +267,16 @@ citations, held to the same teen-safety bar as the rest of the app's prompts
 
 # Predictive Warming & UX
 
-The best cold-miss UI is **no cold miss**. We already recompute a user's match on
-signal change (onboarding completion, new answers). At that moment we know their
-predicted deck — so we enqueue content generation for it into the existing async
-queue ([051 Generation Pipeline](../05_AI/051_GENERATION_PIPELINE.md)). By the
-time they open Explore, the rows exist and render instantly.
+*Planned (Phase C) — not built. The per-user Explore **summary** already
+pre-warms through the `page:explore` queue target, but the tiered **deck**
+warming below does not exist yet, and depends on the match layer, which is also
+unbuilt.*
+
+The best cold-miss UI is **no cold miss**. Once a user's match is recomputed on
+signal change (onboarding completion, new answers), we know their predicted deck
+— so we enqueue content generation for it into the existing async queue
+([051 Generation Pipeline](../05_AI/051_GENERATION_PIPELINE.md)). By the time they
+open Explore, the rows exist and render instantly.
 
 ### Tiered, to keep it affordable
 
@@ -257,6 +342,10 @@ type ExplorePath = {
 };
 
 // Per-user — computed on signal change, never in the catalog
+// NOTE: NOT wired. The `explore_path_matches` table exists in the migration but
+// no code uses it, and this type does not exist. Per-user
+// match is still the client-side stand-in (_lib/scorePath.ts over the
+// localStorage signal). This block is the planned server shape.
 type PathMatch = {
   userId; pathId;
   score; rank;
@@ -266,40 +355,48 @@ type PathMatch = {
 };
 ```
 
-The frontend renders any lane from `ExplorePath` + `PathMatch` through **one
-landing engine and one detail engine** — replacing five bespoke ~1,500-line
-pages.
+The frontend renders any lane from `ExplorePath` through **one landing engine
+and one detail engine** — replacing five bespoke ~1,500-line pages. The shipped
+`ExplorePath` lives in `_data/exploreSchema.ts` (web) with a server mirror in
+`exploreTypes.ts` (API) that the `content` jsonb column stores verbatim. The
+`PathMatch` half is not built; scoring is layered on client-side at render.
 
 ---
 
 # Phased Delivery
 
-### Phase A · Consolidate & Reskin — *frontend, no backend risk*
+### Phase A · Consolidate & Reskin — *frontend* — ✅ SHIPPED
 
-- Define the single `ExplorePath` schema; build the shared landing + detail engines.
-- Migrate the existing mock content (6 careers + L/W/I/Play) onto it — same
-  content, unified.
-- **Delete the dead engine** + unused `WorkPathSubnav` + V1 `forecast`/`nextSteps`;
-  fix Play's empty data + routing bug.
-- Restyle onto the site's `SectionCard` / `sectionCard()` system: 720px column,
-  flat `white/10` borders, one muted tone per lane, the small monochrome corner
-  constellation.
-- Add the Insights-style summary entry.
+- ✅ Single `ExplorePath` schema; shared landing + detail engines.
+- ✅ Existing mock content (6 careers + L/W/I/Play) migrated onto it, unified.
+- ✅ Dead engine + unused `WorkPathSubnav` + V1 `forecast`/`nextSteps` deleted;
+  Play's empty data + routing bug fixed.
+- ✅ Restyled onto the site's `SectionCard` / `sectionCard()` system.
+- ✅ Insights-style summary entry added.
 
-### Phase B · Catalog + Generation Pipeline — *backend*
+### Phase B · Catalog + Generation Pipeline — *backend* — 🟡 CONTENT shipped, MATCH not
 
-- DB tables: `explore_paths` (catalog) + `path_matches` (per user).
-- Canonicalization: embedding + taxonomy resolver (free-text → canonical id).
-- The single `generatePathContent()` — grounded on approved sources, with
-  citations — behind a read-through cache-miss path.
-- Wire the match layer to recompute on signal change (a generation-pipeline target).
-- Swap the frontend from mock imports to DB reads.
+- ✅ `explore_paths` catalog table (CONTENT layer). ❌ **`explore_path_matches`
+  table exists but is unused** — the per-user MATCH layer is not wired.
+- ✅ Canonicalization: `canonicalizePath.ts` (`canonicalKey` / `slugify`);
+  Work resolves a SOC code (`resolveSoc.ts`) so BLS can look up real wages.
+  (Embedding-based free-text resolution still to come.)
+- ✅ The single `generatePathContent()` — grounded on approved sources
+  (Wikipedia / O\*NET / BLS via `sources/registry.ts`), with citations — behind
+  the read-through cache-miss path (`getOrGeneratePath`).
+- ❌ **Wire the match layer to recompute on signal change** — outstanding. Match
+  is still client-side (`_lib/scorePath.ts`).
+- ✅ Frontend reads the catalog (`ExploreSummaryLoader` / `ExplorePathDetailLoader`),
+  falling back to the mock only on a miss.
 
-### Phase C · Warming & Pre-seed — *scale & polish*
+### Phase C · Warming & Pre-seed — *scale & polish* — 🟡 partial
 
-- Tiered predictive warming enqueued on onboarding / signal change.
-- Offline pre-seed builder (Time Twin pattern, audit-suppressed) for the head.
-- Freshness job re-validating time-sensitive fields on a cadence.
+- ✅ Per-user Explore **summary** pre-warmed via the `page:explore` queue target
+  (`exploreSummary.ts`, input-hash cached in `explore_user_summary`).
+- ❌ Tiered predictive **deck** warming enqueued on onboarding / signal change —
+  not built (depends on the match layer).
+- ❌ Offline pre-seed builder (Time Twin pattern, audit-suppressed) for the head.
+- ❌ Freshness job re-validating time-sensitive fields on a cadence.
 
 ---
 

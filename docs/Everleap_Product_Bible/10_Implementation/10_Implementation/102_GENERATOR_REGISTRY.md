@@ -63,31 +63,45 @@ type GenerationTargetKey =
   | "page:today"
   | "page:insights"
   | "page:insights_summary"
+  | "page:insights_motivations"
+  | "page:insights_strengths"
+  | "page:insights_skills"
+  | "page:insights_time_twin"
+  | "page:insights_fun_facts"
   | "page:explore"
   | "recommendation:careers"
   | "recommendation:actions"
   | "agent:coach"
-  | "agent:mentor";
+  | "agent:mentor"
+  | "memory:consolidate";
 ```
 
 ## Dependency graph (as implemented)
 
 ```
-science:ikigai          (no deps)
-science:enneagram       (no deps)
-science:parachute       (no deps)
+science:ikigai            (no deps)
+science:enneagram         (no deps)
+science:parachute         (no deps)
 
-page:today              depends on [ikigai, enneagram, parachute]
-page:insights            depends on [ikigai, enneagram, parachute]
-page:insights_summary    depends on [ikigai, enneagram, parachute]
-page:explore              depends on [ikigai, enneagram, parachute]
+page:today                depends on [ikigai, enneagram, parachute]
+page:insights             depends on [ikigai, enneagram, parachute]
+page:insights_summary     depends on [ikigai, enneagram, parachute]
+page:insights_time_twin   depends on [ikigai, enneagram, parachute]
+page:insights_fun_facts   depends on [ikigai, enneagram, parachute]
 recommendation:careers    depends on [ikigai, enneagram, parachute]
-recommendation:actions    depends on [ikigai, enneagram, parachute]
-agent:coach                depends on [ikigai, enneagram, parachute]
-agent:mentor                depends on [ikigai, enneagram, parachute]
+agent:coach               depends on [ikigai, enneagram, parachute]
+agent:mentor              depends on [ikigai, enneagram, parachute]
+
+page:insights_motivations depends on [ikigai]        (single science)
+page:insights_strengths   depends on [enneagram]     (single science)
+page:insights_skills      depends on [parachute]     (single science)
+
+page:explore              (no deps — reads raw story answers directly)
+recommendation:actions    (no deps — reads raw story answers directly)
+memory:consolidate        (no deps)
 ```
 
-This is a flat, two-layer graph today: every non-science target depends on the full science set, and no target depends on another non-science target. The Bible's example in `071_GENERATION_REQUESTS.md` ("Today depends on Ikigai, Enneagram, Parachute") is implemented literally.
+This is a **mixed** graph, no longer "every non-science target depends on the full science set." Three shapes coexist: broad targets that depend on all three sciences (`page:today`, `page:insights`, `page:insights_summary`, `page:insights_time_twin`, `page:insights_fun_facts`, the two agents, `recommendation:careers`); per-tab insight targets that depend on exactly one science each (`page:insights_motivations` → Ikigai, `page:insights_strengths` → Enneagram, `page:insights_skills` → Parachute); and targets with no dependencies at all (`page:explore` and `recommendation:actions`, which read the user's raw story answers directly rather than science memos, plus `memory:consolidate`). The Bible's example in `071_GENERATION_REQUESTS.md` ("Today depends on Ikigai, Enneagram, Parachute") is still implemented literally for the broad targets.
 
 `generationDispatcher.ts`'s `runGenerationRecursive` walks this graph depth-first with a `seen` set, so requesting `page:today` for a user transparently runs all three sciences first (if not already running) before Today itself generates. Each dependency is only run once per top-level request, even if multiple targets in the same request share dependencies.
 
@@ -103,13 +117,19 @@ Not every key in the registry has a working generator yet. `runGenerationTarget`
 | `page:today` | Implemented — calls `generateTodayGuidanceForUser` |
 | `page:insights` | Implemented — calls `generateInsightsForUser` |
 | `page:insights_summary` | Implemented — calls `generateInsightsSummaryForUser` |
-| `page:explore` | **Stub** — logs `"Generation target not implemented yet"` and returns |
-| `recommendation:careers` | **Stub** |
-| `recommendation:actions` | **Stub** |
+| `page:insights_motivations` | Implemented — calls `generateInsightsMotivationsForUser` |
+| `page:insights_strengths` | Implemented — calls `generateInsightsStrengthsForUser` |
+| `page:insights_skills` | Implemented — calls `generateInsightsSkillsForUser` |
+| `page:insights_time_twin` | Implemented — calls `generateInsightsTimeTwinForUser` |
+| `page:insights_fun_facts` | Implemented — calls `generateInsightsFunFactsForUser` |
+| `page:explore` | Implemented — calls `generateExploreSummaryForUser` |
+| `recommendation:actions` | Implemented — calls `generateActionSuggestionsForUser` |
+| `memory:consolidate` | Implemented — calls `consolidateUserMemory` |
+| `recommendation:careers` | **Stub** — logs `"Generation target not implemented yet"` and returns |
 | `agent:coach` | **Stub** |
 | `agent:mentor` | **Stub** |
 
-The switch statement ends with an exhaustive `never` check, so adding a new `GenerationTargetKey` without adding a corresponding `case` is a compile error — the registry and the dispatcher cannot silently drift apart.
+Only `recommendation:careers`, `agent:coach`, and `agent:mentor` remain registered-but-stubbed (they share a single fall-through `case` that logs and returns). The switch statement ends with an exhaustive `never` check, so adding a new `GenerationTargetKey` without adding a corresponding `case` is a compile error — the registry and the dispatcher cannot silently drift apart.
 
 ---
 

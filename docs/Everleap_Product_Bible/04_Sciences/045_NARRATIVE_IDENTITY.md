@@ -1,5 +1,10 @@
 # Narrative Identity
 
+> **Status: planned — not yet implemented.** Narrative Identity is not
+> registered in `scienceRegistry.ts`. The implemented sciences today are Ikigai,
+> Enneagram, and What Color Is Your Parachute (Skills). This document is the
+> design intent for when Narrative Identity is added.
+
 ## Purpose
 
 Narrative Identity helps Everleap understand **how users make sense of their lives through the stories they tell about themselves.**
