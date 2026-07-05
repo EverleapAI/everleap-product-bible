@@ -1,363 +1,64 @@
-# Design Principles
+# Idea Backlog
 
 ## Purpose
 
-Design is not decoration.
+This is the running list of things Everleap might build, might fix, or is deciding about.
 
-Design is how Everleap communicates its philosophy before a single word is read.
+It is not a commitment.
 
-Every screen should reinforce the feeling that the product is calm, thoughtful, trustworthy, and focused on the user's growth.
+It is not a roadmap—the Roadmap (090) holds the durable capability arc; this holds the moving candidates beneath it.
 
-Users should never feel overwhelmed.
+Items move through: **Idea → Candidate → In Progress → Shipped** (or **Parked**).
 
-They should feel invited.
-
----
-
-# The Design Philosophy
-
-Everleap should feel like:
-
-A quiet conversation.
-
-Not a dashboard.
-
-Not social media.
-
-Not productivity software.
-
-Not a game.
-
-The interface should disappear behind the experience.
-
-Users should think about themselves.
-
-Not the interface.
+> Note: this file was reconstructed on 2026-07-05 after its contents were found to be a misfiled copy of the Design Principles doc. The engineering-grounded items below are drawn from the current codebase; the product-idea section is intentionally left for the founder to populate—it should not be invented.
 
 ---
 
-# Calm Before Clever
+# Recently Shipped
 
-Whenever forced to choose between:
+Moved out of the backlog. Kept here briefly for context, then pruned.
 
-Interesting
-
-or
-
-Calm
-
-Choose calm.
-
-Whenever forced to choose between:
-
-Complex
-
-or
-
-Simple
-
-Choose simple.
-
-Whenever forced to choose between:
-
-Beautiful
-
-or
-
-Understandable
-
-Choose understandable.
-
-Design exists to remove friction.
-
-Not create admiration.
+- **Input-hash generation cache + science de-amplification** — every AI target skips its call when inputs are unchanged; sciences run once per bundle. Whole-account regeneration is now cost-safe. (see ADR-0008)
+- **Insights consistency** — story completion now refreshes the rich per-tab insight generators; the payload-less combined `page:insights` path is no longer triggered.
+- **Non-blocking action suggestions** — the Actions page serves cached suggestions instantly and warms new ones in the background instead of blocking on a live model call.
+- **AI-spend source breakdown** — the AI Lab screen splits spend into real user (`app`) vs internal tools (`ai_lab`, `prompt_lab`). (see ADR-0010)
+- **Prompt Lab** — passcode-gated live prompt-preview tuning on the cards. (see ADR-0009)
+- **Explore content layer** — DB catalog (`explore_paths`) + read-through AI generation + a per-user Explore summary; mobile progressive-disclosure detail pages.
 
 ---
 
-# One Idea Per Screen
+# In Progress / Next
 
-Every screen should communicate one primary idea.
+Grounded in current code—these are real, partially-built or clearly-pending.
 
-Avoid trying to accomplish multiple goals simultaneously.
-
-For example:
-
-Today
-
-↓
-
-One focus.
-
-Story
-
-↓
-
-One question.
-
-Summary
-
-↓
-
-One central insight.
-
-Explore
-
-↓
-
-One opportunity at a time.
-
-Clarity comes from restraint.
+- **Explore per-user match layer** — the `explore_path_matches` table exists but no code uses it; per-user fit/scoring is still computed client-side from `localStorage`. Wire a server-side match layer that recomputes on signal change. (see 063)
+- **Retire the orphaned combined insights generator** — `page:insights` / `generateInsightsForUser` still exists but no live trigger uses it. Decide whether to delete it or keep it as a manual full-rebuild path.
+- **Implement the four planned sciences** — SDT, Big Five, Narrative Identity, Possible Selves have Bible docs (043–046) but no generators. Only Ikigai / Enneagram / Parachute are live.
+- **Fill the stub generation targets** — `recommendation:careers`, `agent:coach`, `agent:mentor` are registered but only log "not implemented yet."
 
 ---
 
-# Progressive Disclosure
+# Known Debt
 
-Never show everything at once.
+Worth tracking, not urgent.
 
-Reveal information gradually.
-
-Users should feel like they are discovering the product rather than learning software.
-
-Good interfaces answer:
-
-"What do I need right now?"
-
-Not:
-
-"What might I someday need?"
+- **No longitudinal history** — generated knowledge (science memos, page guidance, memory) upserts in place; only the latest row per (user, key) is kept. History-over-time is aspirational. (see 070)
+- **generationTimer schedule vs comment** — the cron fires once per minute while the inline comment still describes a 10-second / 5-minute cadence. Reconcile.
+- **No first-class version columns** — prompt / generator / model version live only as strings inside `source_snapshot` JSON, not queryable columns.
+- **Two hardcoded model-string copies remain** — the shared client uses `ANTHROPIC_MODEL`, but the science-memo generators and `aiLabRun.ts` still keep local copies.
 
 ---
 
-# Whitespace Is Content
+# Ideas & Candidates
 
-Empty space is not wasted space.
+> Product ideas belong here—features and directions the founder is weighing that are NOT yet reflected in code. This section was lost with the original file; it should be repopulated deliberately, not reconstructed from the codebase. Seed it from your own notes.
 
-Whitespace gives ideas room to breathe.
-
-A crowded interface creates cognitive fatigue.
-
-Reflection requires visual calm.
+- _(add product ideas here)_
 
 ---
 
-# Reading Comes First
-
-Everleap is primarily a reading experience.
-
-Typography matters more than decoration.
-
-Paragraph rhythm matters more than animation.
-
-The interface should encourage thoughtful reading.
-
-Not scanning.
-
----
-
-# Motion Should Have Purpose
-
-Animation should communicate change.
-
-Not attract attention.
-
-Examples:
-
-- transitions
-- loading states
-- expanding explanations
-- progress
-
-Avoid decorative animation.
-
-Movement should reduce confusion.
-
-Never increase it.
-
----
-
-# Color
-
-Color should communicate meaning.
-
-Not excitement.
-
-Examples:
-
-- confidence
-- progress
-- attention
-- warning
-- success
-
-Avoid excessive saturation.
-
-The interface should feel timeless.
-
----
-
-# Icons
-
-Icons support understanding.
-
-They should never replace labels.
-
-If an icon requires explanation, the icon has failed.
-
-Text should always remain primary.
-
----
-
-# Cards
-
-Cards should represent ideas.
-
-Not arbitrary layout decisions.
-
-Every card should answer one question.
-
-If a card attempts to communicate several unrelated concepts, split it.
-
-Cards create mental organization.
-
----
-
-# Lists
-
-Lists should remain short.
-
-Whenever practical:
-
-3–7 items.
-
-Long lists create fatigue.
-
-Users should feel guided.
-
-Not buried.
-
----
-
-# Personalization
-
-Personalization should feel subtle.
-
-The interface should quietly adapt.
-
-It should never constantly announce:
-
-"This was personalized for you."
-
-The experience itself should make personalization obvious.
-
----
-
-# Mobile First Thinking
-
-Even on larger screens, the product should feel:
-
-focused
-
-comfortable
-
-simple
-
-Large monitors should not encourage unnecessary complexity.
-
-Every screen should work beautifully on a phone first.
-
----
-
-# Accessibility
-
-Accessibility is part of good design.
-
-Not an additional feature.
-
-Design should naturally support:
-
-- readable typography
-- sufficient contrast
-- keyboard navigation
-- screen readers
-- clear hierarchy
-- predictable interactions
-
-The product should be usable by everyone.
-
----
-
-# Emotional Design
-
-The interface should create:
-
-calm
-
-curiosity
-
-confidence
-
-reflection
-
-hope
-
-It should never create:
-
-urgency
-
-pressure
-
-comparison
-
-competition
-
-fear of missing out
-
-Everleap is intentionally different from social media.
-
----
-
-# Consistency
-
-Users should quickly learn how Everleap behaves.
-
-Consistency matters more than novelty.
-
-The product should reuse familiar:
-
-- layouts
-- spacing
-- interactions
-- typography
-- navigation
-
-Predictability reduces cognitive load.
-
----
-
-# Success
-
-Design succeeds when users stop noticing it.
-
-Instead they notice themselves.
-
-If users remember the animation more than the insight...
-
-the design has become too loud.
-
----
-
-# Product Rules
-
-Every design decision should answer:
-
-1. Does this reduce cognitive load?
-2. Does this increase clarity?
-3. Does this support reflection?
-4. Does this build trust?
-5. Does this quietly get out of the user's way?
-
-The best Everleap interface is one that users almost forget exists.
-
-Their attention should remain where it belongs:
-
-On their own growth.
+# How This List Stays Honest
+
+- An item leaves **Shipped** and is pruned once it's been in the code long enough to be assumed, not announced.
+- An item in **In Progress / Next** or **Known Debt** should name the file or table it concerns, so it can be verified against code.
+- If an item can't be tied to a real need or a real place in the system, it's an **Idea**, not a Candidate—keep it in the section above until it earns its place.

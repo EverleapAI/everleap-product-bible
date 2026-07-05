@@ -1,254 +1,228 @@
-# Explore
+# Insights Summary
 
 ## Purpose
 
-Explore exists to expand possibilities.
+The Insights Summary page helps users see the **single strongest pattern** currently worth exploring across everything they've shared.
 
-If Story helps users understand themselves...
+Motivations, Strengths, and Skills each look at one slice of the evidence.
 
-and Today helps users grow...
+Insights Summary looks across all three at once.
 
-Explore helps users discover what is possible.
+Its purpose is not to describe what a user is like.
 
-The purpose of Explore is not to recommend a destination.
+It is not to summarize their history.
 
-Its purpose is to introduce opportunities that align with the user's emerging patterns while encouraging continued curiosity.
+It is not to reach a verdict.
+
+Its responsibility is to name the pattern that seems to connect the slices—and to hold it loosely enough to change.
 
 ---
 
-# The Question Explore Answers
+# The Question This Page Answers
 
-Explore answers one question:
+Every page answers one question.
 
-> **"Given what we currently understand, what is worth exploring next?"**
+Insights Summary answers:
 
-Notice the wording.
+> **"Given everything we understand so far, what is the strongest pattern worth exploring across why, how, and what?"**
 
-Not:
+Everything on this page should contribute to answering that question.
 
-"What should you do?"
-
-Not:
-
-"What career should you choose?"
-
-Simply:
-
-"What is worth exploring?"
-
-That distinction preserves the user's agency.
+Nothing else.
 
 ---
 
 # Philosophy
 
-People rarely discover their future by thinking about it.
+A person is always more than any single slice of themselves.
 
-They discover it by trying things.
+Motivations explains one slice. Strengths another. Skills another.
 
-Reading.
+Each is honest on its own, and incomplete on its own.
 
-Building.
+Insights Summary is the connective read—the place where Everleap notices what those slices might have in common.
 
-Meeting people.
+It should feel like Everleap thinking out loud in front of the user.
 
-Joining clubs.
+Not reading them a report.
 
-Taking classes.
-
-Volunteering.
-
-Creating.
-
-Failing.
-
-Trying again.
-
-Explore should encourage experiences rather than conclusions.
+Because this page reaches the furthest, it must be held the most loosely.
 
 ---
 
-# Exploration Before Commitment
+# This Is A Hypothesis, Not A Profile
 
-The purpose of Explore is to widen horizons before narrowing choices.
+Insights Summary is never a biography.
 
-Students often eliminate possibilities too early because they lack exposure.
+It is never a personality type.
 
-Everleap should encourage thoughtful experimentation before encouraging commitment.
+It is never a final conclusion.
 
-Curiosity comes first.
+It is a cross-slice hypothesis—explored from a few angles, and open to revision the moment new evidence arrives.
 
-Commitment comes later.
-
----
-
-# What Explore Contains
-
-Explore may include opportunities such as:
-
-- careers
-- college majors
-- hobbies
-- clubs
-- volunteer experiences
-- projects
-- books
-- videos
-- podcasts
-- competitions
-- certifications
-- courses
-- mentors
-- organizations
-- experiences
-
-The product is exploring possibilities, not careers.
+The stronger the pattern seems, the more carefully it should be offered.
 
 ---
 
-# Why Recommendations Exist
+# Scientific Foundation
 
-Every recommendation should answer:
+This page rests on the same three sciences as the tabs beneath it: Ikigai (motivations), Enneagram (strengths), and Parachute (skills).
 
-> "Why might this be interesting for this person?"
+It does not run a separate assessment.
 
-Recommendations should always connect back to evidence.
+It looks for the intersection the three already point toward—where energy, natural approach, and capability seem to reinforce one another.
 
-For example:
-
-"This may fit because you consistently enjoy solving open-ended problems."
-
-Not:
-
-"You should become an engineer."
-
-The explanation matters more than the recommendation.
+The page should present that intersection as an emerging hypothesis, not a result.
 
 ---
 
-# Relationship To Science
+# What This Page Contains
 
-Explore should never rely on a single science.
+The page should help users see:
 
-Instead, recommendations should emerge from multiple sources including:
+- the strongest pattern currently connecting their motivations, strengths, and skills
+- the possibilities that pattern quietly points toward ("superpowers")
+- the tensions or blind spots worth watching ("watch-outs")
+- a few small, low-stakes things they could try next to test the pattern
 
-- motivations
-- strengths
-- transferable skills
-- interests
-- actions completed
-- previous exploration
-- confidence
-
-The strongest recommendations emerge when multiple independent observations point in the same direction.
+Everything is offered as an invitation to explore, never as a description to accept.
 
 ---
 
-# Relationship To Today
+# What This Page Should Never Do
 
-Today encourages action.
+This page should never:
 
-Explore encourages discovery.
-
-A recommendation discovered in Explore may later become tomorrow's action.
-
-Likewise, successful actions may unlock new exploration opportunities.
-
-The two pages should continuously reinforce each other.
+- assign an identity or personality type
+- predict a career or an outcome
+- diagnose the user
+- flatter the user
+- summarize their biography
+- present the pattern as a conclusion
 
 ---
 
-# Personalization
+# Evidence
 
-Explore should evolve.
+Every observation should be traceable to evidence.
 
-As new evidence appears:
+Evidence may include:
 
-new opportunities appear.
+- Story responses
+- recurring themes across the three sciences
+- science memo observations
+- consolidated memory
+- completed actions and small tasks
 
-old opportunities disappear.
+Because this page synthesizes the others, it inherits their evidence—and their uncertainty.
 
-recommendations become more specific.
+If the underlying evidence is thin, the summary should say so plainly.
 
-interests become more refined.
+---
 
-Explore should never feel static.
+# Confidence
+
+Insights Summary reaches further than any single tab, so it carries the most uncertainty.
+
+Lower confidence should widen the language and invite more exploration.
+
+Higher confidence allows the pattern to be named more directly.
+
+As confidence grows, the tone may change—the kind of claim never does.
+
+Confidence never becomes certainty.
+
+---
+
+# Relationship To Other Pages
+
+Motivations explains why.
+
+Strengths explains how.
+
+Skills explains what.
+
+Insights Summary names what those three seem to have in common.
+
+The deeper tabs hold the evidence.
+
+The summary names the pattern—and sends the user back into the tabs to explore it.
+
+It should never replace the tabs, and never contradict them.
 
 ---
 
 # AI Responsibilities
 
-Artificial intelligence should act like an experienced mentor who knows many possible paths.
+The AI responsible for Insights Summary should:
 
-Its job is to introduce possibilities.
+- find the strongest pattern that spans motivations, strengths, and skills
+- explain what makes that pattern worth exploring
+- surface the tensions and open questions honestly
+- offer a few small ways to test it
 
-Not to choose them.
+It should never:
 
-AI should explain:
-
-- why something may fit
-- what makes it interesting
-- what evidence supports it
-- what the user might learn by exploring it
-
-The final decision always belongs to the user.
+- tell users who they are
+- predict a career
+- repeat Story answers
+- invent evidence
+- overstate a pattern the tabs don't support
 
 ---
 
-# Diversity
+# Writing Style
 
-Explore should intentionally recommend opportunities from different domains.
+Writing should feel:
 
-Not every recommendation should reinforce existing interests.
+- thoughtful
+- curious
+- evidence-based
+- hopeful
+- intellectually honest
 
-Occasionally the product should introduce surprising possibilities that are still supported by evidence.
-
-Growth often comes from unexpected experiences.
+The page should sound like someone helping the user notice a thread they hadn't yet connected.
 
 ---
 
 # Success
 
-Explore succeeds when users say:
+Insights Summary succeeds when users think:
 
-"I never would have thought about that."
+"I never connected those parts of myself before."
 
-"That actually sounds interesting."
+"That's a thread worth pulling on."
 
-"I'd like to learn more."
+"It's not telling me who I am—it's showing me where to look."
 
-"I'm going to try that."
+The goal is a pattern worth exploring.
 
-The purpose is not immediate commitment.
-
-The purpose is curiosity.
+Not a verdict.
 
 ---
 
 # Anti-Patterns
 
-Explore should never:
+Avoid:
 
-- recommend only careers
-- become a job board
-- overwhelm users with choices
-- repeat identical recommendations
-- make deterministic predictions
-- recommend without explanation
-- encourage exploration unsupported by evidence
+- personality labels
+- career advice
+- generic inspiration
+- exaggerated confidence
+- unsupported synthesis
+- repeating Story responses
+- presenting the summary as a conclusion
 
 ---
 
 # Product Rules
 
-Every recommendation should answer three questions:
+Every pattern the summary names should answer:
 
-1. Why might this fit?
-2. What might the user learn?
-3. What evidence supports showing it now?
+1. What pattern connects the tabs?
+2. What evidence across them supports it?
+3. Why might it be worth exploring now?
 
-If those questions cannot be answered, the recommendation should not appear.
+If those questions cannot be answered, the pattern should not appear.
 
-Explore exists to expand possibilities, not narrow them.
-
-That responsibility should guide every future feature added to this page.
+The page exists to reveal a connection worth exploring—not to define the person.
