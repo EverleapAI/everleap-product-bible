@@ -4,15 +4,26 @@
 
 This document tracks the build history of Everleap's two core repositories: `apps/web` (frontend) and `apps/everleap-api` (backend). Unlike `094_ARCHITECTURE_DECISION_RECORDS.md`, which captures the *reasoning* behind major decisions, this changelog captures *what shipped and when*, derived from real commit history.
 
-Both repos are young — `everleap-api` has 5 commits total, `web` has a much longer history dominated by iterative frontend rebuilds. Commit messages in `web` are noticeably less descriptive in its early history ("Your commit message here" appears repeatedly), which is itself useful context: treat early commit messages as low-signal and prefer reading the diffs directly if precise historical detail is ever needed.
+Both repos are young — `everleap-api` has roughly 77 commits and `web` a much longer history dominated by iterative frontend rebuilds. Commit messages in `web` are noticeably less descriptive in its early history ("Your commit message here" appears repeatedly), which is itself useful context: treat early commit messages as low-signal and prefer reading the diffs directly if precise historical detail is ever needed.
 
 This document should be updated periodically rather than maintained commit-by-commit — its job is to mark eras and milestones, not replace `git log`.
 
 ---
 
-# `apps/everleap-api` — Full History
+# `apps/everleap-api` — Eras (newest first)
 
-The backend has a short, clear history: it was built from scratch as a dedicated API, replacing whatever served the frontend before.
+The backend was built from scratch as a dedicated API (~77 commits), replacing whatever served the frontend before. Its earliest history was a handful of large foundational commits; more recently it has grown era by era, and the latest commits are all Explore / career-matching work.
+
+## Era: Explore / O*NET Career Matching (most recent)
+The most recent run of commits is dominated by `"Explore: …"` messages and centers on **server-side Work career matching**. This era added:
+- A RIASEC interest read inferred from the user's own evidence, crosswalked to the O*NET occupation universe and curated into per-user Work picks written to `explore_path_matches` (`recommendation:careers`, `careerMatch.ts` — see `102_GENERATOR_REGISTRY.md` and `104_PROMPT_CATALOG.md`).
+- An O*NET Web Services v2 client backed by the `onet_occupations` cache (`100_DATABASE_SCHEMA.md`).
+- Background warming of those matches, audit-suppressed so the pre-generation cost stays off the spend dashboard (`104_PROMPT_CATALOG.md`).
+- A fix to the generation↔render contract for Explore path content, paired with a serve-time normalizer (`normalizePathContent.ts`) that idempotently upgrades older cached rows to the shape the frontend renders.
+- A Bright Outlook / O*NET data card on the Work detail surface.
+
+## Era: Foundation (earliest)
+The first commits stood the dedicated backend up and wired its pipeline:
 
 | Commit | Description |
 |---|---|
@@ -20,9 +31,8 @@ The backend has a short, clear history: it was built from scratch as a dedicated
 | `409bc51` | Create deploy.yml — GitHub Actions CI/CD added |
 | `3a3e978` | Verify GitHub deploy |
 | `1579f5c` | Deploy passkey auth flow — WebAuthn/passkey authentication shipped |
-| `fd0aff2` | Update dev API code (current HEAD as of this writing) |
 
-This confirms the backend is genuinely new — the entire Generation Pipeline, science memo system, Today/Insights generators, and auth system described throughout this Implementation section were built within these 5 commits' worth of iteration (each commit here represents substantial accumulated work, not 5 small changes).
+The entire Generation Pipeline, science memo system, Today/Insights generators, and auth system described throughout this Implementation section grew out of this foundation and the eras that followed — each early commit represents substantial accumulated work, not a small change.
 
 ---
 
