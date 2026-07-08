@@ -92,7 +92,8 @@ deck; any lane that misses keeps its mock deck, so it can't regress.
 table is the shared, user-independent content cache. `getOrGeneratePath(lane,
 title)` canonicalizes the title to a key, checks the catalog, and on a **hit**
 serves the stored `content` jsonb instantly; on a **miss** it gathers grounding
-facts (Wikipedia every lane; O\*NET + BLS for Work when creds are set), has
+facts (Wikipedia every lane; O\*NET + BLS for Work when creds are set — see
+**O\*NET Web Services (v2)** below), has
 Claude synthesize the full `ExplorePath`, writes the row, and serves it — cached
 for every future user. Detail pages wire through `ExplorePathDetailLoader`, which
 renders a mock immediately when one exists and swaps in the catalog row from
@@ -262,6 +263,46 @@ commercial sites (Coursera, Udemy, Meetup) we **link out, never ingest** — the
 ToS forbid it. All narrative is AI-synthesized on top and carries source
 citations, held to the same teen-safety bar as the rest of the app's prompts
 ([081 Teen Language Guide](../08_Writing/081_TEEN_LANGUAGE_GUIDE.md)).
+
+---
+
+# O\*NET Web Services (v2)
+
+The Work lane is grounded in **O\*NET Web Services API 2.0** — the U.S.
+Department of Labor's public-domain occupation database — via
+`apps/everleap-api/src/lib/explore/onetClient.ts`.
+
+- **Endpoint & auth.** Base `https://api-v2.onetcenter.org/`, header
+  `X-API-Key: <ONET_API_KEY>`. (This replaced the legacy My Next Move consumer
+  API at `services.onetcenter.org/ws/mnm`, which used username/password basic
+  auth — that path is retired.)
+- **Config.** `ONET_API_KEY` in the everleap-api environment. Set in local
+  `local.settings.json` for local/dev DB work; **must also be set in the
+  everleap-api-dev Function App → Configuration** or the deployed API's O\*NET
+  path stays inert (it degrades gracefully — no key means no O\*NET facts, other
+  sources still ground the path).
+- **What we read.** `onetClient` resolves a free-text title to a real O\*NET-SOC
+  occupation (`/online/search`) and pulls a normalized profile
+  (`getOccupationProfile`): description, tasks, skills, knowledge, **job zone**
+  (education / preparation level), **Bright Outlook** flag, **RIASEC interests**,
+  sample job titles, and related occupations. The 6-digit SOC (`socFromCode`)
+  feeds the BLS OOH wage lookup (`sources/resolveSoc.ts`); the profile text feeds
+  generation grounding (`sources/onet.ts` → `sources/registry.ts`).
+- **Roadmap.** Phase 1 (done) = accurate SOC + rich occupation grounding on
+  generated Work paths. Phase 2 = surface the structured data (tasks / skills /
+  job zone / bright outlook / related careers) directly on Work detail screens.
+  Phase 3 = ground career **matching** in O\*NET structure (RIASEC interests +
+  job zones, optionally the O\*NET Interest Profiler).
+
+### Attribution (required by license)
+
+Wherever O\*NET / DOL occupation data is shown, the app carries the DOL-mandated
+notice: *"Incorporates information from O\*NET Web Services by the U.S. Department
+of Labor, Employment and Training Administration (USDOL/ETA)."* Implemented as
+`ExploreAttribution` / `OnetNotice`
+(`apps/web/.../explore/_components/ExploreAttribution.tsx`), rendered on the Work
+landing and every Work path detail / drill-down screen, alongside each path's
+per-fact `Citation[]`.
 
 ---
 
