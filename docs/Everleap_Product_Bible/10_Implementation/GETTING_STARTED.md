@@ -34,6 +34,53 @@ There is **no root workspace** — each app installs and runs independently.
 
 ---
 
+## Editor & AI assistant (VS Code + Claude Code)
+
+This team builds with **VS Code** and **Claude Code** (Anthropic's agentic coding
+tool). You don't have to, but the repo ships config for both, and the docs and
+workflows assume you have Claude Code available.
+
+**1. VS Code.** Install from <https://code.visualstudio.com>, then open the repo:
+
+```bash
+code C:/Projects/everleap-app        # or open the apps/ folder you're working in
+```
+
+The repo already contains `.vscode/` (`extensions.json`, `settings.json`,
+`launch.json`, `tasks.json`) at both the root and `apps/` — but these are
+**git-ignored / local**, so a fresh clone won't have them. Install the usual
+TypeScript / ESLint / Tailwind CSS / Prettier extensions, and ask a teammate for
+their `.vscode/` if you want the shared launch + task configs.
+
+**2. Claude Code.** It's available as a CLI, a **VS Code extension**, a JetBrains
+extension, a desktop app, and a web app. Install and sign in per the official
+docs — <https://docs.claude.com/en/docs/claude-code> (install specifics change,
+so follow the current page rather than a command pasted here). Sign in with your
+Claude account (`/login` on first run). For the VS Code integration, install the
+**Claude Code** extension from the marketplace; it drives the same CLI from a
+side panel.
+
+**3. Attach it to this repo.** Claude Code uses the **current working directory**
+as its project context — there's nothing to "connect." Just run it from the
+folder you're working in:
+
+```bash
+cd C:/Projects/everleap-app        # or cd apps/web, cd apps/everleap-api
+claude                             # starts a session scoped to that directory
+```
+
+In VS Code, open the repo folder first, then launch Claude Code from the side
+panel or the command palette — it operates on the open workspace. Project-level
+Claude settings live in `.claude/` (e.g. `settings.local.json`) — that file is
+**local and git-ignored**, so each developer keeps their own; it is never
+committed and should never hold secrets.
+
+> **Secrets stay out of the tree.** `apps/everleap-api/local.settings.json` and
+> `.claude/settings.local.json` are both git-ignored. Never commit either, and
+> never paste keys into a doc or a committed config file.
+
+---
+
 ## 1. Backend — `apps/everleap-api`
 
 ```bash
