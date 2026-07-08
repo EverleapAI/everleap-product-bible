@@ -1,5 +1,11 @@
 # Recommendations
 
+> **Implementation status (2026-07-08):** There is **no standalone "Recommendations" page or route** in the app, and no "Recommendations" tab in the bottom nav (Today · Insights · Explore · Actions · Me). The recommendation *concept* described here is delivered through two real surfaces:
+> - **Explore → Work** — per-user, O\*NET-grounded career matches (`apps/everleap-api/src/lib/explore/careerMatch.ts`, target `recommendation:careers`).
+> - **Actions → "Suggested for you"** — agent-suggested next steps (`apps/everleap-api/src/lib/actions/actionSuggestions.ts`, target `recommendation:actions`).
+>
+> Treat this document as the recommendation *philosophy*, read alongside `033_EXPLORE.md` and `03A_ACTIONS.md`. There is no "recommendation engine" to build as a page.
+
 ## Purpose
 
 Recommendations transform understanding into opportunity.

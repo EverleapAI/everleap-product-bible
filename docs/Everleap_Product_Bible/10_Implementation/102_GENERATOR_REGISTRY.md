@@ -125,11 +125,11 @@ Not every key in the registry has a working generator yet. `runGenerationTarget`
 | `page:explore` | Implemented — calls `generateExploreSummaryForUser` |
 | `recommendation:actions` | Implemented — calls `generateActionSuggestionsForUser` |
 | `memory:consolidate` | Implemented — calls `consolidateUserMemory` |
-| `recommendation:careers` | **Stub** — logs `"Generation target not implemented yet"` and returns |
+| `recommendation:careers` | Implemented — dispatches to `generateCareerMatchesForUser` (`src/lib/explore/careerMatch.ts`); `dependsOn` all three sciences |
 | `agent:coach` | **Stub** |
 | `agent:mentor` | **Stub** |
 
-Only `recommendation:careers`, `agent:coach`, and `agent:mentor` remain registered-but-stubbed (they share a single fall-through `case` that logs and returns). The switch statement ends with an exhaustive `never` check, so adding a new `GenerationTargetKey` without adding a corresponding `case` is a compile error — the registry and the dispatcher cannot silently drift apart.
+Only `agent:coach` and `agent:mentor` remain registered-but-stubbed (they share a single fall-through `case` that logs and returns). The switch statement ends with an exhaustive `never` check, so adding a new `GenerationTargetKey` without adding a corresponding `case` is a compile error — the registry and the dispatcher cannot silently drift apart.
 
 ---
 

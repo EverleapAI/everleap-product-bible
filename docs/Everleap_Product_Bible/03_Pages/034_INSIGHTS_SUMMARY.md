@@ -1,5 +1,7 @@
 # Insights Summary
 
+> **Implementation note:** Insights is a **single route, `/main/insights`, with tabs** — not five separate pages. The tabs are **Summary, Motivations, Strengths, Skills, Fun Facts** (`apps/web/src/app/(app)/main/insights/page.tsx`). This document describes the **Summary** tab; docs `035`–`038` describe the other tabs. Each tab has its own background generator (`science:*` memos → `guidance/insights/*`); see `05_AI/051_GENERATION_PIPELINE.md`.
+
 ## Purpose
 
 The Insights Summary page helps users see the **single strongest pattern** currently worth exploring across everything they've shared.

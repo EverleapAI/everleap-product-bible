@@ -24,6 +24,7 @@ Moved out of the backlog. Kept here briefly for context, then pruned.
 - **AI-spend source breakdown** — the AI Lab screen splits spend into real user (`app`) vs internal tools (`ai_lab`, `prompt_lab`). (see ADR-0010)
 - **Prompt Lab** — passcode-gated live prompt-preview tuning on the cards. (see ADR-0009)
 - **Explore content layer** — DB catalog (`explore_paths`) + read-through AI generation + a per-user Explore summary; mobile progressive-disclosure detail pages.
+- **Explore Work career matching (O\*NET)** — server-side per-user matching shipped: `careerMatch.ts` infers RIASEC → O\*NET v2 interest crosswalk → Claude curation → `explore_path_matches`, wired to the `recommendation:careers` target (recomputes on signal change, input-hash cached). Adds the bundled O\*NET universe (`onetOccupations.ts`/`occupationUniverse.ts`), O\*NET profile cache (`onetCache.ts` + `onet_occupations`), RIASEC inference (`interestProfile.ts` + `user_interest_profiles`), background warming of matches, and a serve-time content normalizer (`normalizePathContent.ts`). (see 063)
 
 ---
 
@@ -31,10 +32,10 @@ Moved out of the backlog. Kept here briefly for context, then pruned.
 
 Grounded in current code—these are real, partially-built or clearly-pending.
 
-- **Explore per-user match layer** — the `explore_path_matches` table exists but no code uses it; per-user fit/scoring is still computed client-side from `localStorage`. Wire a server-side match layer that recomputes on signal change. (see 063)
+- **Non-Work lane matching** — the Work lane is now server-matched (O\*NET), but Learning / World / Impact / Play still rank **client-side** (`apps/web/.../explore/_lib/scorePath.ts`) from `localStorage` signal, and fresh users see empty non-Work decks. Give each lane its own taxonomy + server-side match layer. (see 063)
 - **Retire the orphaned combined insights generator** — `page:insights` / `generateInsightsForUser` still exists but no live trigger uses it. Decide whether to delete it or keep it as a manual full-rebuild path.
 - **Implement the four planned sciences** — SDT, Big Five, Narrative Identity, Possible Selves have Bible docs (043–046) but no generators. Only Ikigai / Enneagram / Parachute are live.
-- **Fill the stub generation targets** — `recommendation:careers`, `agent:coach`, `agent:mentor` are registered but only log "not implemented yet."
+- **Fill the remaining stub generation targets** — `agent:coach` and `agent:mentor` are registered but only log "not implemented yet." (`recommendation:careers` is now implemented — see Recently Shipped.)
 
 ---
 

@@ -138,13 +138,32 @@ The call is `runAnthropic(buildPrompt(...), 1200, { userId, feature: "action_sug
 
 ---
 
+# Layer 4 — Explore Career Matching (`explore/careerMatch.ts`, `explore/interestProfile.ts`)
+
+The server-side Work career-matching path (generation target `recommendation:careers`) uses two distinct prompts, both grounded against a bundled O*NET occupation universe.
+
+## RIASEC inference (`interestProfile.ts`)
+Infers a six-dimension RIASEC (Holland Code) interest profile from the user's own Story/onboarding evidence. The prompt asks the model to *score each area 0-40 (0 = no sign of it, 40 = a defining, dominant interest)* using only the evidence, and to use the full range rather than flattening everything to the middle. The call is `runAnthropic(buildPrompt(...), 200, { userId, feature: "riasec_infer" })` — a deliberately tiny token budget for a small numeric result. Output JSON: `{realistic, investigative, artistic, social, enterprising, conventional}`, each clamped to `0-40` (`clamp40`). Persisted to `user_interest_profiles` (see `100_DATABASE_SCHEMA.md`).
+
+## Career-match curation + universe fallback (`careerMatch.ts`)
+Ranks the O*NET occupation universe into per-user Work picks, each with a grounded "why this fits you." Two prompt paths share an output contract:
+- **`buildCuratePrompt`** — the primary path. The RIASEC profile drives an O*NET interest crosswalk that narrows the universe to an interest-matched candidate subset, and the model then curates the best-fit picks for *this* teen from that subset, grounding each pick in the science read first and the user's own words second, and spreading picks across a few fields rather than clustering.
+- **`buildPrompt`** — the fallback path when no candidate subset is available; the model ranks the whole universe directly, so matching always works.
+
+Both call `runAnthropic(..., 2500, { userId, feature: "career_match" })`. Output JSON: `{picks: [{title, score, why_you, reasons}]}`, best fit first. Every returned `title` is **validated against the bundled O*NET universe** (the curator passes the candidate subset as the allowed set; the fallback passes the whole universe) — a pick whose title doesn't map to a real occupation is dropped, so the model can never invent a career. Accepted picks are written wholesale to `explore_path_matches` (see `100_DATABASE_SCHEMA.md`), replacing any prior Work matches so stale picks never linger.
+
+## Explore path content — generation ↔ render contract
+The on-demand Explore path-generation prompt (`generatePathContent.ts`) emits a **rich object** shape for a single path. A serve-time normalizer (`normalizePathContent.ts`) idempotently upgrades older cached rows to the render contract the frontend expects: string → object `salaryBand` / `aiImpact`, `fitSignal` scores from a 0-5 scale to 0-100, and tone `caution` → `warning`. It is a no-op on content already in the new shape, so it's safe to run on every read regardless of when a row was cached.
+
+---
+
 # AI Usage Tracking
 
 `recordAiUsage.ts` writes to `ai_usage_audit`, looking up live per-model rates from `ai_model_pricing` to compute input/output/cached-input cost. Token fields are normalized across multiple possible key names (`input_tokens` / `inputTokens` / `prompt_tokens`, etc.) to tolerate both OpenAI's and Anthropic's SDK usage shapes. It silently swallows its own errors (`{ok:false, error}`, never throws) — a usage-recording failure can never break generation itself.
 
 `functions/ai/usageSummary.ts` (`GET /ai/usage/summary`) aggregates `ai_usage_audit` by provider into request count, month-to-date cost, all-time cost, and average cost per request.
 
-`AiUsageTrack` (defined in `guidance/shared/anthropic.ts`) gained an optional `actorType` field alongside `feature` / `userId` / `source` / `metadata`, so a recorded call can distinguish who triggered it (e.g. a real user's generation vs. an internal preview run).
+`AiUsageTrack` (defined in `guidance/shared/anthropic.ts`) gained an optional `actorType` field alongside `feature` / `userId` / `source` / `metadata`, so a recorded call can distinguish who triggered it (e.g. a real user's generation vs. an internal preview run). It also carries an optional `suppressAudit?: boolean` — when set (used by background warming / pre-generation such as career-match warming and warm Explore path content), `runAnthropic` skips the `ai_usage_audit` write so that non-user-facing spend doesn't show on the spend dashboard. The same suppression can be forced globally via the `EVERLEAP_SUPPRESS_AI_AUDIT` env var (`"1"` makes `recordAiUsage` a no-op).
 
 ---
 

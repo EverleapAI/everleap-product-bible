@@ -12,6 +12,7 @@ Where the rest of the Bible should be read top-down per `README.md`'s recommende
 
 | Doc | Answers |
 |---|---|
+| `GETTING_STARTED.md` | The fastest path from a fresh clone to the app running locally — ports, env vars, database, and the run-locally gotchas. **Read this first.** |
 | `100_DATABASE_SCHEMA.md` | What tables actually exist in Postgres, what they store, and where the schema has drifted or accumulated debt |
 | `101_API_CONTRACTS.md` | Every Azure Function endpoint — route, auth, request/response shape, side effects |
 | `102_GENERATOR_REGISTRY.md` | How the science registry, generation registry, and generation queue compose to implement the dependency-resolving generation pipeline |

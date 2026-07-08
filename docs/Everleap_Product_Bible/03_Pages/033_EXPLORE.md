@@ -106,6 +106,24 @@ The product is exploring possibilities, not careers.
 
 ---
 
+# How Explore Is Structured Today
+
+> *Factual note for developers — the philosophy above is the intent; this is the current implementation.*
+
+Explore is organized into **five lanes**, each a real sub-route under `/main/explore/<lane>` (`apps/web/src/app/(app)/main/explore/layout.tsx`):
+
+- **Work** — careers
+- **Learning** — fields of study / what to learn
+- **World** — places, cultures, topics
+- **Impact** — ways to make a difference
+- **Play** — hobbies and fun
+
+The Explore landing (`/main/explore`) is a cross-lane **Summary** — the strongest pick per lane — not a flat feed. Inside a lane, each opportunity is a **path** with an essentials screen (`/main/explore/<lane>/<pathId>`) and drill-down section screens (`/…/<pathId>/<section>`, where section = `reality` | `outlook` | `try` | `specialties`).
+
+Path content lives in a shared, cacheable catalog (`explore_paths`), generated on demand and grounded on approved sources (Wikipedia all lanes; O\*NET + BLS for Work). The **Work** lane is additionally personalized server-side: each user gets ranked career matches (O\*NET-grounded) with a "why this fits you" line (`explore_path_matches`). The other four lanes are ranked client-side for now. Full data flow: `06_Architecture/063_EXPLORE_ARCHITECTURE.md`.
+
+---
+
 # Why Recommendations Exist
 
 Every recommendation should answer:

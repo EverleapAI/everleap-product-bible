@@ -172,19 +172,23 @@ These documents capture future ideas, roadmap items, and concepts that have not 
 
 ---
 
-## 99 Decisions
+## 10 Implementation
 
-Major product decisions.
+**The as-built developer reference — start here if you are writing code.**
 
-Every significant product decision should eventually receive its own document explaining:
+Unlike the rest of the Bible (which describes *why* Everleap behaves as it does), this section describes *what is actually built*, verified by reading the code in `apps/everleap-api` and `apps/web`. It covers a run-it-locally getting-started, the real database schema, every API endpoint, the generation registry and event flow, the production prompt catalog, deployment + environment, testing, a changelog, and a day-to-day working playbook.
 
-- the problem
-- the alternatives considered
-- the final decision
-- the reasoning
-- long-term implications
+New engineers: read `108_INDEX.md`, then `GETTING_STARTED.md`, then `109_EVERLEAP_PLAYBOOK.md`.
 
-This allows future engineers to understand not only what decisions were made, but why they were made.
+Treat any divergence between this section and the live code as a bug in the docs, and fix it.
+
+---
+
+## 99 Reference
+
+Shared reference material — the glossary of terms used across the Bible (`990_GLOSSARY.md`).
+
+*(Architecture Decision Records live in `09_Future/094_ARCHITECTURE_DECISION_RECORDS.md`.)*
 
 ---
 
@@ -206,6 +210,8 @@ The recommended order is:
 10. Future
 
 Understanding the philosophy before the implementation helps preserve consistency as Everleap grows.
+
+**Developers:** once you understand the philosophy, use **10 Implementation** as your working reference — it is meant to be jumped into, not read top-down — and **99 Reference** for the glossary. If you only have an hour, read `10_Implementation/GETTING_STARTED.md` and `108_INDEX.md`.
 
 ---
 

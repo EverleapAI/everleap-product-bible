@@ -42,6 +42,10 @@ This is consistently applied on most endpoints, but **not all** — see the flag
 | `flows/getFlow.ts` | `flows/{key}` | GET | **none enforced** | route param `key` | `{ ok, flow:{id,key,name,nodes:[...]} }` | read-only |
 | `ai/usageSummary.ts` | `ai/usage/summary` | GET | **none enforced** | none | `{ ok, providers:{...}, sources:{ app, ai_lab, prompt_lab } }` — each source is `{ requestCount, monthToDateCost, allTimeCost }`; each provider adds `averageRequestCost` | read-only, aggregates `ai_usage_audit` |
 | `aiLabRun.ts` | `ai/lab/run` | POST | **session required + Prompt Lab unlock + rate-limited** (`requirePromptLabUnlock` then `checkPromptLabRateLimit` action `generate`, 6/60s → 429) | `{ provider, prompt, answers[], userCharacterLimit?, promptMode?, templateKey? }` | `{ ok, internal, user, total, output, provider, model, usage, estimatedCostUsd }` | Two AI calls; two `ai_usage_audit` rows (`source:"ai_lab"`) |
+| `updateProfile.ts` | `profile` | POST | session required | `{ firstName?, zipCode? }` (a field is only touched if its key is present; ZIP validated 5-digit) | `{ ok, user }` | Updates `users.first_name` / `zip_code` |
+| `userData.ts` (`dataExport`) | `data/export` | GET | session required | none | `{ ok, data }` | read-only — returns everything Everleap holds about the signed-in user |
+| `userData.ts` (`dataDelete`) | `data/delete` | POST | session required | `{ confirm:"DELETE" }` | `{ ok, ... }` | Permanently deletes the account and its data |
+| `badges/getAchievements.ts` | `achievements` | GET | session required | none | `{ ok, badges, earnedCount, total, newlyEarned }` | Evaluates the DB-driven badge set and awards any newly-qualified badge as a side effect |
 
 ---
 
@@ -89,11 +93,15 @@ This is consistently applied on most endpoints, but **not all** — see the flag
 | `insightsSummaryFeedback.ts` | `guidance/insights-summary/feedback` | POST | session required | `{ rating, note?, page_key? }` (rating ∈ `mostly`/`somewhat`/`not_really`) | `{ ok }` | Inserts `insights_summary_feedback`; enqueues per-tab target (or `REFRESH_INSIGHTS_SUMMARY`), deferred, priority 100 |
 | `getActionSuggestions.ts` | `guidance/action-suggestions` | POST | session required | `{ force?: boolean }` | `{ ok, cache, generating, payload }` | **Default non-blocking:** `peekActionSuggestions` serves cache + enqueues background `recommendation:actions` (trigger `action_suggestions_view`, deferred, priority 50). `force=true` generates synchronously |
 | `userActions.ts` | `guidance/actions` | GET / POST / PATCH | session required | GET `?source_ref=&status=`; POST `{ sourceType, title, sourceRef?, lane?, description?, href?, status? }`; PATCH `{ id, status }` | `{ ok, actions }` / `{ ok, action }` | Read/save/update `user_actions`; saving an `explore_path` or marking `done` fires a deferred `REFRESH_TODAY` (`explore_saved` / `action_completed`) |
-| `getExplorePaths.ts` | `guidance/explore-paths` | GET | session required | `?lane=` | `{ ok, ... }` | read-only Explore deck |
+| `getExplorePaths.ts` | `guidance/explore-paths` | GET | session required | `?lane=` | `{ ok, ... }` | read-only Explore deck. For the `work` lane it returns server-ranked, memo-grounded personalized matches from `explore_path_matches` (`personalized: true`, per-card `brightOutlook`); other lanes return the shared catalog deck |
 | `getExplorePath.ts` | `guidance/explore-path` | GET | session required | `?lane=&slug=` | `{ ok, ... }` | read-only single Explore path (on-demand content) |
 | `getExploreProfile.ts` | `guidance/explore-profile` | GET | session required | none | `{ ok, ... }` | read-only (first name + answers) |
 | `getExploreSummary.ts` | `guidance/explore-summary` | POST | session required | none | `{ ok, payload, cache }` | Read-through: `getOrGenerateExploreSummary` (input-hash cached) |
 | `getProfile.ts` | `guidance/profile` | GET | session required | none | `{ ok, profile }` | read-only user profile snapshot |
+| `actionMission.ts` | `guidance/action-mission` | POST | session required | `{ id, op, ... }` (op ∈ `get`/`start`/`toggleStep`/`complete`) | `{ ok, action }` | `start` generates the mission (one AI call, once); `complete` records reflection and fires deferred `REFRESH_TODAY` + `REFRESH_INSIGHTS_SUMMARY` (`action_reflection`) |
+| `getOnboardingSynthesis.ts` | `guidance/onboarding-synthesis` | GET | session required | none | `{ ok, status, synthesis }` | read-only — returns the persisted post-onboarding synthesis |
+| `introSeen.ts` | `guidance/intro-seen` | GET / POST | session required | none | `{ ok, firstTime }` | GET reports state; POST atomically claims-once (flips `users.has_seen_intro`) so the narrated intro plays exactly once |
+| `selfPortrait.ts` | `guidance/self-portrait` | GET | session required | none | `{ ok, portrait }` | read-only — cached self-portrait (`portrait: null` until there's enough signal) |
 | `timeTwinReflection.ts` | `guidance/time-twin-reflection` | GET / POST | session required | POST `{ twin_id, reflection }` | `{ ok, ... }` | Read/upsert `time_twin_reflections` |
 | `getTimeTwinFigureImage.ts` | `guidance/time-twin-figure-image` | GET | session required | `?slug=` | image bytes | Serves stored portrait from `time_twin_figures` |
 | `trackContentEvent.ts` | `track/event` | POST | session required | `{ page_key, ... }` | `{ ok }` | Inserts `user_content_events` (Tier-2 implicit signal) |

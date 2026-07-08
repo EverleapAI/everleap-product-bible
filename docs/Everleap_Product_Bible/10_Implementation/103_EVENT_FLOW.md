@@ -35,6 +35,7 @@ REFRESH_INSIGHTS_SUMMARY   -> [page:insights_summary,
                                page:insights_time_twin,
                                page:insights_fun_facts,
                                recommendation:actions,
+                               recommendation:careers,
                                page:explore,
                                memory:consolidate]
 REFRESH_INSIGHTS           -> [page:insights_summary, page:insights]   (defined, now UNUSED)
@@ -45,7 +46,7 @@ FULL_REBUILD               -> [page:today, page:insights_summary, page:insights,
                                recommendation:actions]                 (defined, unused)
 ```
 
-Only `REFRESH_TODAY` and `REFRESH_INSIGHTS_SUMMARY` are referenced by live callers today. `REFRESH_INSIGHTS` is now **dead relative to live triggers** — nothing enqueues it anymore, which also means the combined `page:insights` target (which it was the only path to) is no longer reached from any live trigger; the per-tab insight targets in `REFRESH_INSIGHTS_SUMMARY` replaced it (they write the rich per-tab payloads the old combined path didn't). `REFRESH_EXPLORE`, `REFRESH_RECOMMENDATIONS`, and `FULL_REBUILD` are defined but unused; the two remaining stubbed targets they reference (`recommendation:careers` and — via `FULL_REBUILD` — `page:insights`) are registered but not exercised here (`102_GENERATOR_REGISTRY.md`).
+Only `REFRESH_TODAY` and `REFRESH_INSIGHTS_SUMMARY` are referenced by live callers today. `REFRESH_INSIGHTS` is now **dead relative to live triggers** — nothing enqueues it anymore, which also means the combined `page:insights` target (which it was the only path to) is no longer reached from any live trigger; the per-tab insight targets in `REFRESH_INSIGHTS_SUMMARY` replaced it (they write the rich per-tab payloads the old combined path didn't). `REFRESH_EXPLORE`, `REFRESH_RECOMMENDATIONS`, and `FULL_REBUILD` are defined but unused as bundles. Note that `recommendation:careers` is **implemented and exercised** — not via those unused bundles, but because it's now part of the live `REFRESH_INSIGHTS_SUMMARY` bundle, so it runs on every insights refresh (`102_GENERATOR_REGISTRY.md`). The only target still registered-but-unexercised via a live trigger is the legacy combined `page:insights` (reachable only through the dead `REFRESH_INSIGHTS` / `FULL_REBUILD` bundles).
 
 ## Why science targets are never directly enqueued
 

@@ -154,17 +154,21 @@ They become structured inputs for later generations.
 
 Once all required sciences are complete, higher-level generators begin.
 
-Examples include:
+Science-dependent generators (they consume science memos):
 
-- Today
-- Insights Summary
-- Recommendations
-- Explore
+- Today (`page:today`)
+- Insights tabs — Summary, Motivations, Strengths, Skills, Time Twin, Fun Facts
+- Career matches (`recommendation:careers`)
 - Future coaching agents
 
-These generators synthesize multiple sciences into user-facing experiences.
+These generators synthesize one or more sciences into user-facing experiences.
 
-No page should bypass the science layer.
+**Not every generator depends on the science layer, by design.** Two read the user's raw Story answers directly and declare no science dependencies (`dependsOn: []` in `generationRegistry.ts`):
+
+- **Explore** (`page:explore`) — the whole-life summary card reads Story answers directly.
+- **Action suggestions** (`recommendation:actions`) — likewise reads raw Story answers.
+
+So the rule is "pages consume stored knowledge, not live AI" (see `060_SYSTEM_ARCHITECTURE.md`) — *not* "every generator passes through the sciences." Today, the Insights tabs, and `recommendation:careers` go through the science layer; Explore and `recommendation:actions` intentionally do not.
 
 Insights is not a single generator. Each Insights tab has its own generator and its own target—Summary, Motivations, Strengths, Skills, Time Twin, and Fun Facts—and live events drive those per-tab targets directly. Motivations depends only on Ikigai, Strengths only on Enneagram, Skills only on Parachute; Summary, Time Twin, and Fun Facts depend on all three sciences.
 

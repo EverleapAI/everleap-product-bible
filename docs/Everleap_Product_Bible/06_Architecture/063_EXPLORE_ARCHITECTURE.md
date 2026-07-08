@@ -15,7 +15,7 @@ It is a direct application of the platform's central principle
 
 > **Pages consume knowledge. They never create it.**
 
-Status (updated 2026-07-05):
+Status (updated 2026-07-08):
 
 - **Phase A · Consolidate & Reskin — SHIPPED.** One unified `ExplorePath` schema;
   shared landing + detail engines; the dead engine and V1 debt deleted; Play
@@ -25,14 +25,17 @@ Status (updated 2026-07-05):
   (`getOrGeneratePath` → hit serves the stored row, miss calls Claude and
   stores). Mock TypeScript is now only an instant Phase-A fallback, not the
   source of truth.
-- **Phase B · MATCH layer — NOT built.** Per-user fit/scoring is still computed
-  **client-side** from `localStorage`. The `explore_path_matches` table exists
-  in the migration but **no code reads or writes it**, and there is no
-  `PathMatch` server type. "Recompute match on signal change" remains
-  outstanding.
-- **Phase C · Warming & Pre-seed — partial.** A per-user Explore *summary*
-  generator ships with input-hash caching and queue pre-warming; the tiered deck
-  warming and offline head pre-seed builder are not built yet.
+- **Phase B · MATCH layer — SHIPPED for the Work lane.** `careerMatch.ts` writes
+  per-user ranked career picks to `explore_path_matches` with a grounded
+  "why you", recomputed on signal change via the `recommendation:careers`
+  generation target, grounded in O\*NET (RIASEC inference → interest crosswalk →
+  Claude curation over a bundled occupation universe). The other four lanes are
+  still client-scored. See **Match & Occupation Layer — SHIPPED** below.
+- **Phase C · Warming & Pre-seed — partial.** The per-user Explore *summary*
+  generator ships (input-hash cached + queue pre-warmed), and each user's matched
+  careers are background-warmed (detail content + O\*NET profile cache). The
+  tiered card-level deck warming and the offline head pre-seed builder are not
+  built yet.
 
 ---
 
@@ -119,17 +122,53 @@ sections **collapsed by default** (a `Collapsible` whose title + one-line teaser
 read as a menu; tapping reveals the section) so the page stays short and
 scannable on a phone, instead of one long fully-expanded scroll.
 
-### Match layer — NOT built yet
+### Match & Occupation Layer — SHIPPED (Work lane)
 
-Per-user match is still the Phase-A client-side stand-in. **The
-`explore_path_matches` table exists in the migration but is unused by any code,
-and there is no `PathMatch` server type.** `_lib/exploreProfile.ts`
-reads the user's signal from the `localStorage` key
-`everleapOnboarding_v4_convo_min` (overlaid with the server's story answers via
-`/api/guidance/explore-profile` when logged in), and `_lib/scorePath.ts` scores
-each path **client-side** by keyword overlap for deck ordering and the signal
-meter. So the plan's *"recompute match on signal change (a generation-pipeline
-target)"* remains outstanding — see Phase B below.
+The per-user MATCH layer is built for **Work**. (The other four lanes still use
+the Phase-A client-side scorer: `_lib/exploreProfile.ts` reads the signal from
+`localStorage` + `/api/guidance/explore-profile`, and `_lib/scorePath.ts` ranks
+by keyword overlap.) The Work pieces:
+
+- **Career matching** — `careerMatch.ts` `generateCareerMatchesForUser`: loads the
+  user's science memos + story signal, infers a RIASEC interest profile, runs it
+  through the O\*NET interest→career crosswalk, has Claude curate/rank the result
+  against the bundled occupation universe, and writes the top ~12 to
+  **`explore_path_matches`** with a grounded `why_you` + reasons. It is the
+  `recommendation:careers` generation target (input-hash cached, `dependsOn`
+  sciences, enqueued on signal change), so matches recompute in the background,
+  never at render. `CareerMatch` is the server type; `loadWorkMatches` /
+  `loadWorkMatchWhyYou` read it back.
+- **Occupation universe** — `onetOccupations.ts` bundles the O\*NET-SOC ranking
+  vocabulary (790 base `.00` occupations, 23 SOC groups); `occupationUniverse.ts`
+  gives title / SOC / slug / path-id lookups. Matching may only pick titles from
+  this closed list, so it can never invent a career.
+- **RIASEC interest inference** — `interestProfile.ts` infers a Holland/RIASEC
+  profile from the user's signal and stores it in **`user_interest_profiles`**
+  (`source` = `inferred`; a formal Interest-Profiler `assessment` override is
+  stubbed for later).
+- **O\*NET v2 crosswalk** — `onetClient.getInterestMatchedCareers` calls the O\*NET
+  `/mpp/interestprofiler/careers` endpoint to turn RIASEC scores into ranked
+  candidate careers.
+- **O\*NET profile cache** — `onetCache.ts` caches the ~6-call occupation profile
+  per SOC in **`onet_occupations`** (45-day TTL). The serve path reads it
+  **cache-only** (`resolveOnetDetailForPath(.., { cacheOnly: true })`) so opening a
+  career never blocks on a live O\*NET fetch; warming fills the cache.
+- **Background warming** — after saving a user's matches, `warmMatchedCareers`
+  pre-generates each matched career's detail content + O\*NET profile (cache-
+  respecting, `suppressAudit`), so opening a match is a cache hit instead of a
+  cold ~8k-token generation.
+- **Serve-time content normalizer** — `normalizePathContent.ts` upgrades older
+  cached `content` rows to the current render contract on read (string →
+  `{low,median,high}` `salaryBand`, string → object `aiImpact`, 0-5 → 0-100
+  fitSignal scores, `caution` → `warning` tone, branch preview/detail
+  reconciliation). Idempotent, so it runs harmlessly on fresh rows too and defends
+  against generation↔render drift recurring.
+
+**Serving.** For `lane === "work"`, `getExplorePaths` returns
+`explore_path_matches` in ranked order as `personalized: true` cards (hook = the
+stored `why_you`); `getExplorePath` overlays the same `why_you` on the detail hero
+and attaches the cached O\*NET data (`OnetFacts`). Non-Work lanes fall through to
+the client scorer.
 
 ---
 
@@ -289,10 +328,13 @@ Department of Labor's public-domain occupation database — via
   feeds the BLS OOH wage lookup (`sources/resolveSoc.ts`); the profile text feeds
   generation grounding (`sources/onet.ts` → `sources/registry.ts`).
 - **Roadmap.** Phase 1 (done) = accurate SOC + rich occupation grounding on
-  generated Work paths. Phase 2 = surface the structured data (tasks / skills /
-  job zone / bright outlook / related careers) directly on Work detail screens.
-  Phase 3 = ground career **matching** in O\*NET structure (RIASEC interests +
-  job zones, optionally the O\*NET Interest Profiler).
+  generated Work paths. Phase 2 (done) = the structured data (job zone, Bright
+  Outlook, tasks, skills, knowledge, RIASEC interests, related careers) is
+  surfaced directly on Work detail screens via `OnetFacts` ("What the data says").
+  Phase 3 (partly done) = career **matching** is grounded in O\*NET structure —
+  RIASEC inference + the interest crosswalk are live (see **Match & Occupation
+  Layer** above); a formal O\*NET Interest Profiler assessment override is still
+  optional/stubbed.
 
 ### Attribution (required by license)
 
@@ -308,10 +350,11 @@ per-fact `Citation[]`.
 
 # Predictive Warming & UX
 
-*Planned (Phase C) — not built. The per-user Explore **summary** already
-pre-warms through the `page:explore` queue target, but the tiered **deck**
-warming below does not exist yet, and depends on the match layer, which is also
-unbuilt.*
+*Partly shipped. The per-user Explore **summary** pre-warms through the
+`page:explore` queue target, and each user's **matched careers** are background-
+warmed (detail content + O\*NET profile) by `warmMatchedCareers` after matches are
+saved. The broader tiered **card-level deck** warming below — the whole predicted
+deck across all lanes — is still not built.*
 
 The best cold-miss UI is **no cold miss**. Once a user's match is recomputed on
 signal change (onboarding completion, new answers), we know their predicted deck
@@ -339,9 +382,9 @@ catalog before the per-user warm even runs. Users effectively never wait.
 Pre-seeding *everything* is impossible and goes stale. Pre-seed the **head**,
 lazy-populate the tail — Zipf says a small head covers most users.
 
-- **Work** — full deep content for the **top ~150 occupations** (O\*NET has
-  ~1,000; the top 150 cover the overwhelming majority of teen aspirations). The
-  most-reused catalog, so it earns the depth.
+- **Work** — full deep content for the **top ~150 occupations** (the bundled
+  universe is 790 base occupations; the top 150 cover the overwhelming majority
+  of teen aspirations). The most-reused catalog, so it earns the depth.
 - **Learning / World / Impact / Play** — card + first-level depth for a **~40-each**
   head; deep screens warmed per user.
 
@@ -382,15 +425,13 @@ type ExplorePath = {
   contentModel: "seed" | "warm" | "on-demand";
 };
 
-// Per-user — computed on signal change, never in the catalog
-// NOTE: NOT wired. The `explore_path_matches` table exists in the migration but
-// no code uses it, and this type does not exist. Per-user
-// match is still the client-side stand-in (_lib/scorePath.ts over the
-// localStorage signal). This block is the planned server shape.
-type PathMatch = {
-  userId; pathId;
+// Per-user — computed on signal change, never in the catalog.
+// SHIPPED for Work as `CareerMatch` in careerMatch.ts, written to
+// `explore_path_matches`. (Non-Work lanes still use the client scorer.)
+type CareerMatch = {
+  userId; pathId;        // pathId = the canonical work:<slug> key
   score; rank;
-  whyYou: string;        // personalized hook
+  whyYou: string;        // grounded personalized hook
   reasons: Reason[];
   generatedAt;
 };
@@ -400,7 +441,16 @@ The frontend renders any lane from `ExplorePath` through **one landing engine
 and one detail engine** — replacing five bespoke ~1,500-line pages. The shipped
 `ExplorePath` lives in `_data/exploreSchema.ts` (web) with a server mirror in
 `exploreTypes.ts` (API) that the `content` jsonb column stores verbatim. The
-`PathMatch` half is not built; scoring is layered on client-side at render.
+match half is shipped server-side for Work (`careerMatch.ts` → `explore_path_matches`);
+non-Work lanes still layer scoring on client-side at render.
+
+> The `ExplorePath` block above is **illustrative** — the authoritative contract
+> is `exploreTypes.ts` (API) / `_data/exploreSchema.ts` (web), which also carry
+> `overview.fitSignals`, `trajectory.aiImpact` / `whatIsUnderPressure` /
+> `whyExciting` / `whyRisky`, `reality.pulse`, and `nextSteps.hero*`. Generation
+> emits, and the render engine consumes, that full shape — the two files must stay
+> in sync, and the serve-time `normalizePathContent` heals older rows that predate
+> a field.
 
 ---
 
@@ -415,18 +465,19 @@ and one detail engine** — replacing five bespoke ~1,500-line pages. The shippe
 - ✅ Restyled onto the site's `SectionCard` / `sectionCard()` system.
 - ✅ Insights-style summary entry added.
 
-### Phase B · Catalog + Generation Pipeline — *backend* — 🟡 CONTENT shipped, MATCH not
+### Phase B · Catalog + Generation Pipeline — *backend* — ✅ CONTENT + MATCH (Work) shipped
 
-- ✅ `explore_paths` catalog table (CONTENT layer). ❌ **`explore_path_matches`
-  table exists but is unused** — the per-user MATCH layer is not wired.
+- ✅ `explore_paths` catalog table (CONTENT layer). ✅ **`explore_path_matches`**
+  per-user MATCH layer wired for Work (`careerMatch.ts`).
 - ✅ Canonicalization: `canonicalizePath.ts` (`canonicalKey` / `slugify`);
   Work resolves a SOC code (`resolveSoc.ts`) so BLS can look up real wages.
   (Embedding-based free-text resolution still to come.)
 - ✅ The single `generatePathContent()` — grounded on approved sources
   (Wikipedia / O\*NET / BLS via `sources/registry.ts`), with citations — behind
   the read-through cache-miss path (`getOrGeneratePath`).
-- ❌ **Wire the match layer to recompute on signal change** — outstanding. Match
-  is still client-side (`_lib/scorePath.ts`).
+- ✅ **Match layer recomputes on signal change** — the `recommendation:careers`
+  target (`careerMatch.ts`), input-hash cached, enqueued by the insights/refresh
+  bundles. Work only; non-Work lanes still use the client scorer (`_lib/scorePath.ts`).
 - ✅ Frontend reads the catalog (`ExploreSummaryLoader` / `ExplorePathDetailLoader`),
   falling back to the mock only on a miss.
 
@@ -434,8 +485,9 @@ and one detail engine** — replacing five bespoke ~1,500-line pages. The shippe
 
 - ✅ Per-user Explore **summary** pre-warmed via the `page:explore` queue target
   (`exploreSummary.ts`, input-hash cached in `explore_user_summary`).
-- ❌ Tiered predictive **deck** warming enqueued on onboarding / signal change —
-  not built (depends on the match layer).
+- ✅ Per-user **matched-career** warming — `warmMatchedCareers` pre-generates each
+  Work match's detail content + O\*NET profile after matches are saved.
+- ❌ Tiered card-level **deck** warming across all lanes / all matches — not built.
 - ❌ Offline pre-seed builder (Time Twin pattern, audit-suppressed) for the head.
 - ❌ Freshness job re-validating time-sensitive fields on a cadence.
 
