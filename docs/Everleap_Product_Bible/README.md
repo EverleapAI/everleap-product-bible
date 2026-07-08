@@ -2,6 +2,8 @@
 
 > *The definitive source of truth for the Everleap product.*
 
+> 👋 **New here?** Start with [`READ_ME_FIRST.md`](READ_ME_FIRST.md) — a one-page orientation for new developers.
+
 ---
 
 # Purpose
