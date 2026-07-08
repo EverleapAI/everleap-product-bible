@@ -28,7 +28,7 @@ architecture. (Full version: `06_Architecture/060_SYSTEM_ARCHITECTURE.md`.)
 
 | Repo | What |
 |---|---|
-| **this one** (`EverleapAI/everleap-product-bible-`) | the docs you're reading |
+| **this one** (`EverleapAI/everleap-product-bible`) | the docs you're reading |
 | `EverleapAI/web` | the Next.js frontend (`apps/web`) |
 | `EverleapAI/everleap-api` | the Azure Functions backend (`apps/everleap-api`) |
 

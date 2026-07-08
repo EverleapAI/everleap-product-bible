@@ -89,7 +89,7 @@ org. You need all three:
 
 | Repo | Clone into | What it is |
 |---|---|---|
-| `EverleapAI/everleap-product-bible-` | anywhere (e.g. `bible/`) | these docs — the Product Bible |
+| `EverleapAI/everleap-product-bible` | anywhere (e.g. `bible/`) | these docs — the Product Bible |
 | `EverleapAI/web` | `everleap-app/apps/web` | Next.js frontend |
 | `EverleapAI/everleap-api` | `everleap-app/apps/everleap-api` | Azure Functions backend |
 
@@ -119,7 +119,7 @@ mkdir everleap-app && cd everleap-app     # your workspace root
 mkdir apps
 git clone https://github.com/EverleapAI/web.git          apps/web
 git clone https://github.com/EverleapAI/everleap-api.git apps/everleap-api
-git clone https://github.com/EverleapAI/everleap-product-bible-.git bible
+git clone https://github.com/EverleapAI/everleap-product-bible.git bible
 ```
 
 You should end up with:
@@ -129,7 +129,7 @@ everleap-app/
 ├─ apps/
 │  ├─ web/            → EverleapAI/web
 │  └─ everleap-api/   → EverleapAI/everleap-api
-└─ bible/             → EverleapAI/everleap-product-bible-
+└─ bible/             → EverleapAI/everleap-product-bible
 ```
 
 **Get the secrets** out-of-band from the team and drop them in place — these are
