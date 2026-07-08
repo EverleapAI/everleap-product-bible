@@ -28,13 +28,14 @@ architecture. (Full version: `06_Architecture/060_SYSTEM_ARCHITECTURE.md`.)
 
 | Repo | What |
 |---|---|
-| **this one** (`everleap-product-bible`) | the docs you're reading |
+| **this one** (`EverleapAI/everleap-product-bible-`) | the docs you're reading |
 | `EverleapAI/web` | the Next.js frontend (`apps/web`) |
 | `EverleapAI/everleap-api` | the Azure Functions backend (`apps/everleap-api`) |
 
-Ask the team for access to the two code repos, and for the backend secrets
-(`apps/everleap-api/local.settings.json`) — those are shared out-of-band and are
-never committed.
+Ask the team for membership in the `EverleapAI` org (for the two code repos) and
+for the backend secrets (`apps/everleap-api/local.settings.json`) — those are
+shared out-of-band and are never committed. **`10_Implementation/GETTING_STARTED.md`
+has the exact clone + setup commands.**
 
 ## Your first hour
 

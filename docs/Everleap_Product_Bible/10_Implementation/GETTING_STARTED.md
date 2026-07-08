@@ -10,8 +10,9 @@
 
 ## The shape of the system in one paragraph
 
-Everleap is a monorepo at `C:\Projects\everleap-app`, with the two apps under
-`apps/`. **`apps/web`** is a Next.js 15 (App Router) frontend that also acts as a
+Everleap's code lives in **two independent GitHub repos** cloned side by side
+under an `apps/` folder — these docs are a third repo (see **Get the code**
+below). **`apps/web`** is a Next.js 15 (App Router) frontend that also acts as a
 thin backend-for-frontend: the browser never calls the API host directly — it
 calls same-origin `/api/*` routes that forward the session cookie to the backend
 (the backend has **no CORS**). **`apps/everleap-api`** is an Azure Functions (v4)
@@ -78,6 +79,67 @@ committed and should never hold secrets.
 > **Secrets stay out of the tree.** `apps/everleap-api/local.settings.json` and
 > `.claude/settings.local.json` are both git-ignored. Never commit either, and
 > never paste keys into a doc or a committed config file.
+
+---
+
+## Get the code (clone the repos)
+
+Everleap is **not one repo** — it's three, all under the **`EverleapAI`** GitHub
+org. You need all three:
+
+| Repo | Clone into | What it is |
+|---|---|---|
+| `EverleapAI/everleap-product-bible-` | anywhere (e.g. `bible/`) | these docs — the Product Bible |
+| `EverleapAI/web` | `everleap-app/apps/web` | Next.js frontend |
+| `EverleapAI/everleap-api` | `everleap-app/apps/everleap-api` | Azure Functions backend |
+
+The two code repos are independent (each installs and runs on its own), but the
+docs and tooling assume the `apps/web` + `apps/everleap-api` layout — recreate it.
+
+**One-time git setup** (skip if already configured on this machine):
+
+```bash
+git config --global user.name  "Your Name"
+git config --global user.email "you@everleap.ai"
+```
+
+**Authenticate to GitHub.** Easiest is the GitHub CLI:
+
+```bash
+gh auth login        # GitHub.com → HTTPS → log in with a browser
+```
+
+(or add an SSH key, or use a Personal Access Token — see GitHub's docs. You'll
+need to be a member of the `EverleapAI` org; ask the team for an invite.)
+
+**Clone** (HTTPS shown — swap for the SSH URLs if you set up a key):
+
+```bash
+mkdir everleap-app && cd everleap-app     # your workspace root
+mkdir apps
+git clone https://github.com/EverleapAI/web.git          apps/web
+git clone https://github.com/EverleapAI/everleap-api.git apps/everleap-api
+git clone https://github.com/EverleapAI/everleap-product-bible-.git bible
+```
+
+You should end up with:
+
+```
+everleap-app/
+├─ apps/
+│  ├─ web/            → EverleapAI/web
+│  └─ everleap-api/   → EverleapAI/everleap-api
+└─ bible/             → EverleapAI/everleap-product-bible-
+```
+
+**Get the secrets** out-of-band from the team and drop them in place — these are
+git-ignored and must never be committed:
+
+- `apps/everleap-api/local.settings.json` — the dev Postgres connection string
+  and the API keys (Anthropic, O\*NET, etc.). The backend won't start without it.
+- any `apps/web` env file the frontend needs (see the Frontend step below).
+
+Now continue with the Backend and Frontend steps.
 
 ---
 
