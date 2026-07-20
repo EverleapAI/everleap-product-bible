@@ -1,5 +1,10 @@
 # Read-only Claude Code setup (for collaborators)
 
+> **Writing documentation? This is the wrong page.** This setup deliberately blocks Claude's
+> Edit and Write tools, which is exactly what an author needs. Go to
+> [CLAUDE-database-setup.md](CLAUDE-database-setup.md) instead — it covers Claude Code plus
+> read-only access to the Everleap database.
+
 If you have **Read** access to this repo, you already can't change the canonical code —
 GitHub blocks you from pushing. This file is an *extra* layer: it stops Claude Code from
 editing files even on your **own** laptop, so your local clone stays a clean, trustworthy
